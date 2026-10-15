@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>人物长廊 | 触摸年轮 · 蒙藏学校旧址数字记忆</title>
+<link rel="stylesheet" href="assets/css/style.css?v=2">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+
+<header id="topbar" class="topbar"></header>
+
+<section class="section">
+  <div class="wrap">
+    <span class="eyebrow">人物长廊</span>
+    <h1 style="font-size:clamp(26px,3.6vw,38px)">在枣树下走过的人</h1>
+    <p class="lead">
+      一位戴眼镜的先生，八个从草原来的学生，还有几位来院子里讲道理的年轻人。
+      点击卡片，展开他们的小传、与这棵枣树的关系，以及可查的史料出处。
+    </p>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="wrap">
+    <div class="people-grid" id="peopleGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <span class="eyebrow">人物关系图谱</span>
+    <h2>谁介绍谁入党，谁和谁一起办刊</h2>
+    <p class="muted" id="graphNote">
+      关系依据：李大钊等在蒙藏学校传播马克思主义、引导青年；1924 年多松年、李裕智、吉雅泰、孟纯等入党并建立第一个少数民族党支部；
+      1925 年《蒙古农民》由多松年主笔、乌兰夫约稿编辑、奎璧排版印刷发行。可拖拽节点、滚轮缩放，点击节点查看人物档案。
+    </p>
+    <div class="graph-box"><div id="graph"></div></div>
+  </div>
+</section>
+
+<footer id="footer"></footer>
+
+<script src="assets/vendor/echarts.min.js"></script>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/agent-config.js"></script>
+<script src="assets/js/agent.js"></script>
+<script src="assets/js/people.js"></script>
+</body>
+</html>

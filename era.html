@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>年代内容页 | 触摸年轮 · 蒙藏学校旧址数字记忆</title>
+<link rel="stylesheet" href="assets/css/style.css?v=2">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+
+<header id="topbar" class="topbar"></header>
+
+<!-- ============================ 年代头部 ============================ -->
+<section class="era-head">
+  <div class="wrap">
+    <div id="eraHead"></div>
+  </div>
+</section>
+
+<!-- ============================ 主体 ============================ -->
+<section style="padding:6px 0 20px">
+  <div class="wrap">
+    <div class="era-body">
+      <figure class="scene" id="eraScene" style="margin:0"></figure>
+      <div class="monologue" id="eraMonologue"></div>
+    </div>
+
+    <div class="block-title">史料卡片 · 逐条标注出处</div>
+    <div class="fact-list" id="eraFacts"></div>
+
+    <div class="block-title">交互元素 · 点开看看</div>
+    <div class="tags" id="eraTags"></div>
+
+    <div class="block-title">继续你的年轮</div>
+    <div class="era-nav" id="eraNav"></div>
+
+    <div class="timeline-strip" id="eraOthers" style="margin-top:28px"></div>
+
+    <p class="muted" style="margin-top:18px">
+      小提示：本页支持 ← → 方向键、手机左右滑动切换上一年代 / 下一年代；“听枣树讲”使用浏览器语音合成朗读独白。
+    </p>
+  </div>
+</section>
+
+<footer id="footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/agent-config.js"></script>
+<script src="assets/js/agent.js"></script>
+<script src="assets/js/era.js"></script>
+</body>
+</html>

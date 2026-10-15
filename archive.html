@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>史料库 | 触摸年轮 · 蒙藏学校旧址数字记忆</title>
+<link rel="stylesheet" href="assets/css/style.css?v=2">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+
+<header id="topbar" class="topbar"></header>
+
+<section class="section">
+  <div class="wrap">
+    <span class="eyebrow">史料库</span>
+    <h1 style="font-size:clamp(26px,3.6vw,38px)">每一条都能查到出处</h1>
+    <p class="lead">
+      以下条目按年代分类，逐条标注来源。这里是智能体“问枣树”的知识库（RAG 检索语料）：
+      智能体作答时只依据这里的史料，并回引出处。
+    </p>
+
+    <div style="margin-top:22px">
+      <div class="searchbar">
+        <input id="arcSearch" type="search" placeholder="输入关键词检索，如：李大钊、蒙古农民、党支部、体验馆…">
+        <button class="btn" id="arcAsk">问枣树 →</button>
+      </div>
+      <div class="filter-tags" id="eraFilters"></div>
+      <p class="muted" style="margin-top:10px">共 <b id="arcCount">0</b> 条（按年代 / 关键词筛选后）</p>
+    </div>
+
+    <div class="arc-list" id="arcList"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap doc">
+    <span class="eyebrow">史料来源总览</span>
+    <h2>本项目使用的史料来源</h2>
+    <ol id="sourceList" style="font-size:14.5px"></ol>
+    <div class="callout" style="margin-top:18px">
+      <b>关于“年轮”的说明：</b>“年轮圈”是本作品的叙事工具，圈数与历史年份的对应关系属于艺术化呈现，并非精确的科学定年结果。
+      所有历史场景均有史料依据，枣树独白为团队原创的文学性叙事。作品说明文档中对每条引用逐一标注来源。
+    </div>
+  </div>
+</section>
+
+<footer id="footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/agent-config.js"></script>
+<script src="assets/js/agent.js"></script>
+<script src="assets/js/archive.js"></script>
+</body>
+</html>

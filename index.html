@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>触摸年轮 · 蒙藏学校旧址中华民族共同体数字记忆</title>
+<meta name="description" content="以蒙藏学校旧址西院近400年古枣树的年轮为时间轴，讲述马克思主义在少数民族中传播、第一个少数民族党支部诞生的历史记忆。">
+<link rel="stylesheet" href="assets/css/style.css?v=2">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+
+<header id="topbar" class="topbar"></header>
+
+<!-- ============================ 首页：年轮入口 ============================ -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <span class="eyebrow">红色之旅 · 追梦铸魂</span>
+      <h1>触摸年轮</h1>
+      <p class="lead" style="font-family:var(--serif);font-size:19px;color:var(--red);margin-top:2px">
+        蒙藏学校旧址 · 中华民族共同体数字记忆
+      </p>
+      <p class="lead" id="heroIntro"></p>
+      <p class="muted" style="margin-top:12px">
+        年轮即历史：每一圈对应一个关键历史节点。把鼠标放到年轮上，看它走过哪一年；点击年轮，听它讲那一年的事。
+      </p>
+      <div class="hero-actions">
+        <a class="btn solid" href="era.html?era=qingchu">从最内圈开始 →</a>
+        <a class="btn" href="era.html?era=y1923">直达 1923 年冬夜</a>
+        <a class="btn ghost" href="people.html">人物长廊</a>
+      </div>
+      <div class="ring-legend" style="justify-content:flex-start;margin-top:20px">
+        <span class="chip"><i style="background:#c9a26a"></i>扎根 · 启蒙（清初—1913）</span>
+        <span class="chip"><i style="background:#9c4d38"></i>觉醒 · 火种（1919—1924）</span>
+        <span class="chip"><i style="background:#b5652f"></i>播撒 · 传承（1925—1951）</span>
+        <span class="chip"><i style="background:#cf9b56"></i>回望 · 绽放（1984—2023）</span>
+        <span class="chip"><i style="background:#5f8c46"></i>新芽（2024）</span>
+      </div>
+    </div>
+
+    <div class="ring-stage" id="ringStage"></div>
+  </div>
+</section>
+
+<section class="section" style="padding-top:6px">
+  <div class="wrap">
+    <div class="notes" id="statBox"></div>
+  </div>
+</section>
+
+<!-- ============================ 年轮时间轴 ============================ -->
+<section class="section">
+  <div class="wrap">
+    <span class="eyebrow">年轮时间轴</span>
+    <h2>11 个年轮节点，由内向外</h2>
+    <p class="muted">由树心（清初）到最外圈（2024），每一圈都有对应的史料依据；“年轮圈”为叙事工具，圈数与年份的对应关系属艺术化呈现。</p>
+    <div class="timeline-strip" id="timelineStrip"></div>
+  </div>
+</section>
+
+<!-- ============================ 四大模块 ============================ -->
+<section class="section">
+  <div class="wrap">
+    <span class="eyebrow">网站功能</span>
+    <h2>四个模块，一条叙事主线</h2>
+    <div class="notes" style="margin-top:22px">
+      <div class="note">
+        <h4>年轮入口页</h4>
+        <p>枣树横截面年轮图，11 个年份节点可悬停、可点击，点击即“进入”那个年代。</p>
+        <p style="margin-top:8px"><a href="index.html">查看年轮 →</a></p>
+      </div>
+      <div class="note">
+        <h4>年代内容页（11 个）</h4>
+        <p>场景图 + 枣树独白（200—300 字）+ 史料卡片（逐条标注出处）+ 可点击的人物/物件 + 前后导航。</p>
+        <p style="margin-top:8px"><a href="era.html?era=y1923">示例：1923 年冬 →</a></p>
+      </div>
+      <div class="note">
+        <h4>人物长廊</h4>
+        <p>人物卡片小传、与枣树的关系、相关史料；ECharts 人物关系图谱（谁介绍谁入党、谁与谁一起办刊）。</p>
+        <p style="margin-top:8px"><a href="people.html">进入长廊 →</a></p>
+      </div>
+      <div class="note">
+        <h4>史料库 + 问枣树</h4>
+        <p>按年代分类、逐条标注出处的史料条目，支持关键词检索；智能体“问枣树”基于同一史料库作答并给出引用。</p>
+        <p style="margin-top:8px"><a href="archive.html">检索史料 →</a></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 说明 ============================ -->
+<section class="section">
+  <div class="wrap">
+    <span class="eyebrow">叙事与合规说明</span>
+    <h2>关于“年轮”与史料</h2>
+    <div class="callout" id="homeDisclaimer" style="margin-top:16px"></div>
+    <div class="notes" style="margin-top:20px">
+      <div class="note">
+        <h4>枣树是真的</h4>
+        <p>旧址西院一进院与二进院之间有一棵近 400 年树龄的大枣树，始植于清初；李大钊、邓中夏、赵世炎等曾在这棵树下与蒙古族青年学生交谈。</p>
+      </div>
+      <div class="note">
+        <h4>独白是原创的</h4>
+        <p>枣树独白为团队原创的文学性第一人称叙事，其中的光影、温度、掉落的枣子等细节为氛围营造，史实依据逐条列在该年代“史料卡片”中。</p>
+      </div>
+      <div class="note">
+        <h4>出处是可查的</h4>
+        <p>全部历史引用来自国家民委官网、中国共产党早期北京革命活动纪念馆展陈、校史与权威媒体报道等公开来源，在“史料库”中逐条标注。</p>
+      </div>
+      <div class="note">
+        <h4>图像待替换</h4>
+        <p>当前场景图与首页插画均为团队绘制的示意插画（非历史照片）。正式提交时将替换为公开史料或官方展陈授权图片，并标注来源。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer id="footer"></footer>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/agent-config.js"></script>
+<script src="assets/js/agent.js"></script>
+<script src="assets/js/rings.js"></script>
+<script>
+(function () {
+  window.UI.renderTopbar('index.html');
+  window.UI.renderFooter();
+  document.getElementById('heroIntro').textContent = window.SITE.META.intro;
+  document.getElementById('homeDisclaimer').textContent = window.SITE.META.disclaimer;
+  // 支持从其他页面带 ?q= 跳转后自动向智能体提问
+  var q = new URLSearchParams(location.search).get('q');
+  if (q) {
+    setTimeout(function () {
+      var fab = document.querySelector('.agent-fab');
+      if (fab) fab.click();
+      var input = document.getElementById('agentInput');
+      if (input) { input.value = q; document.getElementById('agentSend').click(); }
+    }, 300);
+  }
+})();
+</script>
+</body>
+</html>
