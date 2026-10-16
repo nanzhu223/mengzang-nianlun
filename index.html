@@ -5,15 +5,31 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>触摸年轮 · 蒙藏学校旧址中华民族共同体数字记忆</title>
 <meta name="description" content="以蒙藏学校旧址西院近400年古枣树的年轮为时间轴，讲述马克思主义在少数民族中传播、第一个少数民族党支部诞生的历史记忆。">
-<link rel="stylesheet" href="assets/css/style.css?v=2">
+<link rel="stylesheet" href="assets/css/style.css?v=3">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 </head>
 <body>
 
 <header id="topbar" class="topbar"></header>
 
+<!-- ============================ 开场：3D 枣树 ============================ -->
+<section class="opening" id="opening" aria-label="开场：一棵近 400 年的大枣树">
+  <canvas id="treeCanvas"></canvas>
+  <div class="opening-inner">
+    <span class="eyebrow">红色之旅 · 追梦铸魂</span>
+    <h1 class="opening-title">触摸年轮</h1>
+    <p class="opening-sub">蒙藏学校旧址 · 中华民族共同体数字记忆</p>
+    <p class="opening-poem">西院一进与二进之间，有一棵近 400 年的大枣树，始植于清初。<br>李大钊、邓中夏、赵世炎曾在树下，与蒙古族青年学生交谈。</p>
+    <div class="opening-actions">
+      <a class="btn solid" href="#ringEntry">进入年轮 →</a>
+      <a class="btn" href="era.html?era=y1923">直达 1923 年冬夜</a>
+    </div>
+  </div>
+  <div class="opening-hint">向下滚动<i></i></div>
+</section>
+
 <!-- ============================ 首页：年轮入口 ============================ -->
-<section class="hero">
+<section class="hero" id="ringEntry">
   <div class="wrap hero-grid">
     <div class="hero-copy">
       <span class="eyebrow">红色之旅 · 追梦铸魂</span>
@@ -118,6 +134,8 @@
 
 <footer id="footer"></footer>
 
+<script src="assets/vendor/three/three.global.js"></script>
+<script src="assets/js/tree3d.js?v=5"></script>
 <script src="assets/js/data.js"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/agent-config.js"></script>
