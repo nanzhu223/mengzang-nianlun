@@ -308,16 +308,22 @@ h3 { font-size: 19px; }
 .note h4 { margin: 0 0 6px; font-size: 16px; color: var(--red); }
 .note p { margin: 0; font-size: 14px; color: var(--ink-soft); }
 
-.timeline-strip { display: flex; gap: 10px; overflow-x: auto; padding: 6px 2px 14px; }
-.tl-item {
-  flex: 0 0 auto; min-width: 128px; padding: 12px 14px;
-  border-radius: 12px; border: 1px solid var(--line);
-  background: linear-gradient(180deg, var(--paper-2), var(--paper-3));
-  color: var(--ink); transition: .2s;
+/* --------------- 首页 年轮时间轴：2D 枣树生长带（清初幼苗 → 2024 大树） --------------- */
+.tree-strip { overflow-x: auto; padding: 6px 2px 4px; }
+.tree-strip-inner { position: relative; }
+.tree-canvas { display: block; }
+.tl-nodes { display: flex; }
+.tl-node {
+  flex: 0 0 auto; box-sizing: border-box; text-align: center;
+  padding: 10px 10px 14px; border-radius: 12px;
+  color: var(--ink); transition: background .2s, transform .2s;
 }
-.tl-item:hover { transform: translateY(-3px); box-shadow: var(--shadow); text-decoration: none; }
-.tl-item b { display: block; font-family: var(--serif); font-size: 18px; color: var(--red); }
-.tl-item span { font-size: 12.5px; color: var(--ink-soft); display: block; margin-top: 2px; }
+.tl-node:hover, .tl-node:focus-visible {
+  background: rgba(201, 162, 106, .16); text-decoration: none; outline: none;
+}
+.tl-node:hover b, .tl-node:focus-visible b { color: var(--bark); }
+.tl-node b { display: block; font-family: var(--serif); font-size: 17px; color: var(--red); transition: color .2s; }
+.tl-node span { font-size: 12px; line-height: 1.4; color: var(--ink-soft); display: block; margin-top: 3px; }
 
 /* ------------------------------ 年代页 ------------------------------ */
 .era-head { padding: 34px 0 0; }
@@ -409,33 +415,43 @@ h3 { font-size: 19px; }
 .era-nav a b { font-family: var(--serif); font-size: 17px; color: var(--red); }
 
 /* ------------------------------ 人物长廊 ------------------------------ */
-.people-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 18px; }
+/* 卡片圆形成“枣”，铺在程序化树冠背景上（people.js 绘制） */
+.people-canopy { position: relative; padding: 26px 18px; }
+.canopy-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+.people-grid {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(288px, 1fr)); gap: 22px;
+}
 .person-card {
-  position: relative;
-  padding: 20px 20px 18px; border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--paper-2), #f2e8d5);
+  position: relative; aspect-ratio: 1 / 1; border-radius: 50%;
+  box-sizing: border-box; padding: 18px 15%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center;
+  background: radial-gradient(circle at 50% 36%, rgba(253,248,239,.97), rgba(243,233,214,.94) 70%, rgba(238,226,201,.92));
   border: 1px solid var(--line); box-shadow: var(--shadow); cursor: pointer;
   transition: .22s; overflow: hidden;
 }
 .person-card::after {
-  content: ""; position: absolute; right: -30px; top: -30px; width: 96px; height: 96px; border-radius: 50%;
-  background: repeating-radial-gradient(circle at 50% 50%, rgba(169,120,74,.22) 0 3px, transparent 3px 7px);
-  opacity: .8;
+  content: ""; position: absolute; inset: 12px; border-radius: 50%;
+  border: 1px solid rgba(169,120,74,.22); pointer-events: none;
 }
-.person-card:hover { transform: translateY(-5px); box-shadow: var(--shadow-lg); border-color: var(--gold); }
+.person-card:hover { transform: translateY(-5px) scale(1.012); box-shadow: var(--shadow-lg); border-color: var(--gold); }
 .person-avatar {
-  width: 62px; height: 62px; border-radius: 50%;
+  width: 46px; height: 46px; border-radius: 50%;
   display: grid; place-items: center;
-  font-family: var(--serif); font-size: 24px; color: #fff;
+  font-family: var(--serif); font-size: 20px; color: #fff;
   background: linear-gradient(140deg, var(--red), #6d1519);
   box-shadow: inset 0 0 0 3px rgba(255,255,255,.28);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
-.person-card h3 { margin: 0 0 2px; font-size: 21px; }
-.person-card .life { font-size: 12.5px; color: var(--ink-soft); letter-spacing: .06em; }
-.person-card .role { margin-top: 10px; font-size: 13.5px; color: var(--red); }
-.person-card .brief { font-size: 13.5px; color: var(--ink-soft); margin: 10px 0 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-.person-card .more { margin-top: 12px; font-size: 13px; color: var(--bark); }
+.person-card h3 { margin: 0 0 2px; font-size: 20px; }
+.person-card .life {
+  font-size: 10.5px; color: var(--ink-soft); letter-spacing: 0;
+  max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.person-card .role { margin-top: 7px; font-size: 13px; color: var(--red); }
+.person-card .brief { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.person-card .more { margin-top: 8px; font-size: 12.5px; color: var(--bark); }
 
 .graph-box { position: relative; margin-top: 20px; padding: 8px; border-radius: var(--radius); background: var(--paper-2); border: 1px solid var(--line); box-shadow: var(--shadow); }
 #graph { width: 100%; height: 520px; }

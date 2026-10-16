@@ -11,6 +11,145 @@
 
   const GROUP_COLOR = { '革命先驱': '#8c1f28', '蒙藏学校学生': '#b5652f' };
 
+  /* =====================================================================
+   * 树冠背景：程序化 Canvas 2D 枣树树冠
+   *  - 实色团块堆出树冠轮廓，叶缘毛边 + 明暗体积 + 叶隙、枣
+   *  - 无外部素材；卡片（圆形）铺在树冠之上，读作“树上结枣”
+   * ===================================================================== */
+  const LEAF_RGB = [
+    [96, 120, 80], [110, 134, 90], [122, 148, 100],
+    [134, 160, 112], [148, 172, 126], [104, 130, 86], [88, 112, 74]
+  ];
+  const FRUIT_RGB = [[158, 76, 62], [140, 62, 52], [168, 92, 74]];
+  let canopyW = -1, canopyH = -1;
+
+  function mulberry32(a) {
+    return function () {
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function rgb(c) { return 'rgb(' + c[0] + ',' + c[1] + ',' + c[2] + ')'; }
+
+  function drawCanopy(cv, W, H) {
+    if (W < 60 || H < 60) return;
+    cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, W, H);
+
+    const rnd = mulberry32(20241017);
+    const cx = W / 2, cy = H * 0.485, rx = W * 0.45, ry = H * 0.44;
+    const R = Math.min(rx, ry);
+
+    // ---------------- ① 树冠主体：实色（衬底 + 团块） ----------------
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(1, ry / rx);
+    const base = ctx.createRadialGradient(0, 0, rx * 0.22, 0, 0, rx * 0.96);
+    base.addColorStop(0, 'rgb(114,140,94)');
+    base.addColorStop(1, 'rgb(96,122,78)');
+    ctx.fillStyle = base;
+    ctx.beginPath(); ctx.arc(0, 0, rx * 0.96, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    function clump(x, y, r) {
+      ctx.fillStyle = rgb(LEAF_RGB[(rnd() * LEAF_RGB.length) | 0]);
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    // 内部团块：制造体块与色斑
+    const nIn = Math.max(46, Math.round((rx * ry) / (R * R) * 24));
+    for (let i = 0; i < nIn; i++) {
+      const a = rnd() * Math.PI * 2, u = Math.sqrt(rnd()) * 0.88;
+      clump(cx + Math.cos(a) * rx * u, cy + Math.sin(a) * ry * u, R * (0.15 + rnd() * 0.13));
+    }
+    // 边缘团块：轮廓自然起伏
+    const nE = Math.max(30, Math.round(((rx + ry) / R) * 8));
+    for (let i = 0; i < nE; i++) {
+      const a = rnd() * Math.PI * 2, rr = 0.93 + rnd() * 0.13;
+      clump(cx + Math.cos(a) * rx * rr, cy + Math.sin(a) * ry * rr, R * (0.12 + rnd() * 0.12));
+    }
+    // 探出树冠的小簇
+    for (let i = 0; i < 20; i++) {
+      const a = rnd() * Math.PI * 2, rr = 1.04 + rnd() * 0.13;
+      clump(cx + Math.cos(a) * rx * rr, cy + Math.sin(a) * ry * rr, R * (0.05 + rnd() * 0.07));
+    }
+
+    // ---------------- ② 叶缘：沿轮廓长出小叶片，边界“毛”起来 ----------------
+    const nL = Math.max(90, Math.round((rx + ry) / 3.2));
+    for (let i = 0; i < nL; i++) {
+      const a = rnd() * Math.PI * 2;
+      const rr = 0.97 + rnd() * 0.15;
+      const c = LEAF_RGB[2 + ((rnd() * (LEAF_RGB.length - 2)) | 0)];
+      const s = 4.5 + rnd() * 8;
+      ctx.save();
+      ctx.translate(cx + Math.cos(a) * rx * rr, cy + Math.sin(a) * ry * rr);
+      ctx.rotate(a + (rnd() - 0.5) * 0.8);
+      ctx.fillStyle = rgb(c);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, s * 1.6, s * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // ---------------- ③ 体积：只在树冠像素上叠加明暗 ----------------
+    ctx.globalCompositeOperation = 'source-atop';
+    const sh = ctx.createLinearGradient(cx - rx * 0.9, cy - ry, cx + rx * 0.85, cy + ry * 1.05);
+    sh.addColorStop(0, 'rgba(233,242,214,.34)');      // 高光（左上）
+    sh.addColorStop(0.42, 'rgba(255,255,255,0)');
+    sh.addColorStop(1, 'rgba(32,50,24,.40)');         // 暗部（右下）
+    ctx.fillStyle = sh;
+    ctx.fillRect(0, 0, W, H);
+    // 叶层深处
+    const inner = ctx.createRadialGradient(cx, cy + ry * 0.12, R * 0.1, cx, cy + ry * 0.12, R * 1.5);
+    inner.addColorStop(0, 'rgba(28,46,22,.22)');
+    inner.addColorStop(0.55, 'rgba(28,46,22,.07)');
+    inner.addColorStop(1, 'rgba(28,46,22,0)');
+    ctx.fillStyle = inner;
+    ctx.beginPath(); ctx.arc(cx, cy + ry * 0.12, R * 1.5, 0, Math.PI * 2); ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+
+    // ---------------- ④ 叶隙：外缘几处透空，像叶片间的缝 ----------------
+    ctx.globalCompositeOperation = 'destination-out';
+    for (let i = 0; i < 16; i++) {
+      const a = rnd() * Math.PI * 2;
+      const rr = 0.5 + rnd() * 0.5;
+      const x = cx + Math.cos(a) * rx * rr, y = cy + Math.sin(a) * ry * rr;
+      const r = 5 + rnd() * 15;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(0,0,0,' + (0.45 + rnd() * 0.35).toFixed(2) + ')');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+
+    // ---------------- ⑤ 枣：少量暗红点 ----------------
+    const nf = Math.max(8, Math.round((rx * ry) / 5200));
+    for (let i = 0; i < nf; i++) {
+      const a = rnd() * Math.PI * 2;
+      const rr = 0.55 + rnd() * 0.42;
+      const c = FRUIT_RGB[(rnd() * FRUIT_RGB.length) | 0];
+      ctx.fillStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (0.5 + rnd() * 0.35).toFixed(2) + ')';
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * rx * rr, cy + Math.sin(a) * ry * rr, 3 + rnd() * 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function renderCanopy() {
+    const wrap = document.getElementById('peopleCanopy');
+    const cv = document.getElementById('canopyCanvas');
+    if (!wrap || !cv) return;
+    const W = Math.round(wrap.clientWidth), H = Math.round(wrap.clientHeight);
+    if (W === canopyW && H === canopyH) return;
+    canopyW = W; canopyH = H;
+    drawCanopy(cv, W, H);
+  }
+
   function renderCards() {
     const box = document.getElementById('peopleGrid');
     box.innerHTML = S.PEOPLE.map(function (p) {
@@ -20,7 +159,7 @@
         '<div class="life">' + esc(p.life) + '　·　' + esc(p.role) + '</div>' +
         '<div class="role">' + esc(p.tag) + '</div>' +
         '<p class="brief">' + esc(p.brief) + '</p>' +
-        '<div class="more">点击展开：小传 · 与枣树的关系 · 史料 →</div>' +
+        '<div class="more">点击展开 →</div>' +
         '</article>';
     }).join('');
     box.addEventListener('click', function (e) {
@@ -150,7 +289,21 @@
 
   U.renderTopbar('people.html');
   U.renderFooter();
-  function boot() { renderCards(); renderGraph(); }
+  function boot() {
+    renderCards();
+    renderCanopy();                       // 卡片布局完成后再量取尺寸，绘制树冠
+    renderGraph();
+
+    let rt = null;
+    window.addEventListener('resize', function () {
+      if (rt) clearTimeout(rt);
+      rt = setTimeout(renderCanopy, 160);
+    });
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(renderCanopy).observe(document.getElementById('peopleCanopy'));
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(renderCanopy);
+  }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
 })();
