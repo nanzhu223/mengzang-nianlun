@@ -6,6 +6,7 @@
  *   叶片与枣果用 InstancedMesh，院落按材质合并，整场只占十余个 draw call。
  * · 院落：一进院（厢房、石桌石凳、水缸花盆）+ 隔墙与垂花门 +
  *   二进院（正房）。枣树就长在一进院与二进院之间。
+ * · 天空：程序化蓝天渐变 + 缓慢飘过的白云（内壁大球，无外部素材）。
  * · 依赖本地内置的 three.js（assets/vendor/three/three.global.js，
  *   经典脚本，暴露 window.THREE），因此 file:// 双击打开也能显示。
  * · 无 WebGL 时优雅降级：隐藏画布，保留文字层，不影响其余页面。
@@ -61,7 +62,7 @@
     }
 
     var scene = new THREE.Scene();
-    scene.fog = new THREE.Fog(0xf0e5cd, 44, 150);
+    scene.fog = new THREE.Fog(0xdbe7ea, 40, 120);   // 与天空地平线同色，远处自然衔接
 
     var camera = new THREE.PerspectiveCamera(40, 1, 0.1, 400);
     var focus = new THREE.Vector3(0, 5.6, -4.0);
@@ -89,7 +90,7 @@
     var rim = new THREE.DirectionalLight(0xc2d8ff, 0.55);
     rim.position.set(-10, 8, -11);
     scene.add(rim);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+    scene.add(new THREE.AmbientLight(0xdfefff, 0.18));   // 微偏冷，避免暖白冲淡天空饱和度
 
     /* ---------------- 程序化纹理 ---------------- */
     var bark = makeBarkTextures();
@@ -158,6 +159,9 @@
     ground.receiveShadow = true;
     scene.add(ground);
 
+    /* ---------------- 天空：蓝天 + 缓慢飘过的白云 ---------------- */
+    var sky = buildSky(scene);
+
     /* ---------------- 相机控制 ---------------- */
     var controls = createControls(canvas, reduceMotion);
 
@@ -167,9 +171,10 @@
       var h = section.clientHeight || Math.round(window.innerHeight);
       renderer.setSize(w, h, false);
       camera.aspect = w / Math.max(h, 1);
-      // 按水平视野反推距离：保证约 30m 宽的院落都装进画面（竖屏自动拉远）
+      // 取景宽度：11m（四合院 24m 宽 → 主体占满画面，四周只留一线天空/地面）
+      // 相机更贴近，地面与远景占比大幅下降，近似「放大倍数增大」
       var hf = Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect);
-      controls.baseDist = Math.max(26, Math.min(64, 15 / Math.tan(hf)));
+      controls.baseDist = Math.max(13, Math.min(40, 11 / Math.tan(hf)));
       camera.updateProjectionMatrix();
     }
     if ('ResizeObserver' in window) {
@@ -184,6 +189,7 @@
     function frame() {
       var dt = Math.min(clock.getDelta(), 0.05);
       wind.value = reduceMotion ? 0 : clock.elapsedTime;
+      sky.update(reduceMotion, dt);
       controls.update(dt);
       controls.apply(camera, focus);
       renderer.render(scene, camera);
@@ -676,15 +682,15 @@
     var c = document.createElement('canvas');
     c.width = s; c.height = s;
     var x = c.getContext('2d', { willReadFrequently: true });
-    x.fillStyle = '#8a7c5f';
+    x.fillStyle = '#93ab63';
     x.fillRect(0, 0, s, s);
 
     for (var i = 0; i < 4200; i++) {
       var r = Math.random() * 6 + 1.5;
       var g = Math.random();
       x.fillStyle = g < 0.45
-        ? 'rgba(120,106,78,0.45)'
-        : (g < 0.82 ? 'rgba(154,140,109,0.4)' : 'rgba(96,104,62,0.42)');
+        ? 'rgba(126,146,86,0.45)'
+        : (g < 0.82 ? 'rgba(160,178,116,0.4)' : 'rgba(96,116,64,0.42)');
       x.beginPath();
       x.arc(Math.random() * s, Math.random() * s, r, 0, Math.PI * 2);
       x.fill();
@@ -858,12 +864,12 @@
 
   function makePavingTexture() {                 // 一块贴图 ≈ 4.8m × 4.8m 垌地（6×6 块灰砖）
     var w = 512, h = 512, c = newCanvas(w, h), x = ctx2d(c), r, b, i;
-    x.fillStyle = '#6c6a62'; x.fillRect(0, 0, w, h);
+    x.fillStyle = '#6d7a52'; x.fillRect(0, 0, w, h);   // 底色：与周围草地同调
     var n = 6, s = w / n;
     for (r = 0; r < n; r++) {
       for (b = 0; b < n; b++) {
-        var g = 136 + (Math.random() - 0.5) * 30;
-        x.fillStyle = 'rgb(' + Math.round(g - 4) + ',' + Math.round(g) + ',' + Math.round(g + 5) + ')';
+        var g = 132 + (Math.random() - 0.5) * 34;
+        x.fillStyle = 'rgb(' + Math.round(g * 0.86) + ',' + Math.round(g) + ',' + Math.round(g * 0.72) + ')';
         x.fillRect(b * s + 2, r * s + 2, s - 4, s - 4);
       }
     }
@@ -921,6 +927,133 @@
   }
 
   /* ================================================================== */
+  /* 天空：蓝天渐变 + 缓慢飘过的白云（两个内壁大球，无外部素材）          */
+  /*  · 天空球：竖直渐变（天顶深蓝 → 地平线浅灰蓝），与 scene.fog 同色衔接 */
+  /*  · 云球：程序化柔边云团贴图，横向可平铺，绕 Y 轴极慢自转形成飘动感    */
+  /*  · 均关掉雾与色调映射，保证颜色与设计一致                             */
+  /* ================================================================== */
+  function buildSky(scene) {
+    /* ---------------- 天空球：竖直渐变 ---------------- */
+    var gw = 4, gh = 512;
+    var cSky = newCanvas(gw, gh);
+    var xs = ctx2d(cSky);
+    var grad = xs.createLinearGradient(0, 0, 0, gh);
+    grad.addColorStop(0.00, '#0a3f8f');   // 天顶（高饱和深蓝）
+    grad.addColorStop(0.16, '#0f52a6');
+    grad.addColorStop(0.30, '#1665bb');
+    grad.addColorStop(0.42, '#1f78cc');
+    grad.addColorStop(0.52, '#3188d6');   // 中天
+    grad.addColorStop(0.60, '#59a2e0');
+    grad.addColorStop(0.67, '#89bfe6');   // 接近地平线
+    grad.addColorStop(0.74, '#bad6ec');   // 地平线
+    grad.addColorStop(0.82, '#dce9f0');   // ≈ fog 色
+    grad.addColorStop(1.00, '#eef1f2');   // 地平线以下（多被地面遮住）
+    xs.fillStyle = grad;
+    xs.fillRect(0, 0, gw, gh);
+
+    var texSky = new THREE.CanvasTexture(cSky);
+    texSky.colorSpace = THREE.SRGBColorSpace;
+    var skyMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(320, 32, 24),
+      new THREE.MeshBasicMaterial({
+        map: texSky, side: THREE.BackSide, fog: false,
+        depthWrite: false, toneMapped: false
+      })
+    );
+    skyMesh.renderOrder = -2;
+    scene.add(skyMesh);
+
+    /* ---------------- 云球：程序化云团 ---------------- */
+    var cw = 1024, ch = 512;
+    var cCloud = newCanvas(cw, ch);
+    var xc = ctx2d(cCloud);
+    xc.clearRect(0, 0, cw, ch);
+
+    var seed = 20241018;
+    function rnd() {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    }
+
+    // 一朵云：积云形态——底部扁平微灰、顶部圆润亮白，边缘用柔边圆斑软化
+    // 横向上同时画三份保证无缝平铺
+    function cloudAt(cx, cy, size) {
+      var n = 7 + Math.floor(rnd() * 6), i, k;
+      // 云底基线（略扁、略带灰调，模拟云底阴影）
+      var baseY = cy + size * 0.30;
+      for (k = -1; k <= 1; k++) {
+        var bx = cx + k * cw;
+        var bg = xc.createLinearGradient(0, baseY - size * 0.28, 0, baseY + size * 0.20);
+        bg.addColorStop(0, 'rgba(226,234,243,0)');
+        bg.addColorStop(0.55, 'rgba(214,224,236,0.42)');
+        bg.addColorStop(1, 'rgba(198,210,226,0)');
+        xc.fillStyle = bg;
+        xc.beginPath();
+        xc.ellipse(bx, baseY, size * 1.05, size * 0.22, 0, 0, Math.PI * 2);
+        xc.fill();
+      }
+      // 主体：多个柔边圆团堆出蓬松轮廓，越靠上越白越亮
+      for (i = 0; i < n; i++) {
+        var t = i / (n - 1);                 // 0=靠近云底 1=靠近云顶
+        var ox = (rnd() - 0.5) * size * 1.55 * (1.25 - t * 0.7);
+        var oy = -t * size * 0.78 + (rnd() - 0.5) * size * 0.22;
+        var r = size * (0.30 + rnd() * 0.34) * (1.05 - t * 0.28);
+        var alpha = 0.80 + t * 0.18;         // 越高越实（整体更白更醒目）
+        var g = xc.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0, 'rgba(255,255,255,' + alpha.toFixed(3) + ')');
+        g.addColorStop(0.45, 'rgba(252,253,255,' + (alpha * 0.78).toFixed(3) + ')');
+        g.addColorStop(0.78, 'rgba(244,248,253,' + (alpha * 0.34).toFixed(3) + ')');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        for (k = -1; k <= 1; k++) {
+          xc.save();
+          xc.translate(cx + ox + k * cw, cy + oy);
+          xc.fillStyle = g;
+          xc.beginPath();
+          xc.arc(0, 0, r, 0, Math.PI * 2);
+          xc.fill();
+          xc.restore();
+        }
+      }
+    }
+
+    // 云主要落在地平线以上（纹理 v 0.55~0.9 → 画布 y 0.1ch~0.45ch）
+    var ci;
+    for (ci = 0; ci < 15; ci++) {
+      var cx0 = rnd() * cw;
+      var cy0 = (0.09 + rnd() * 0.33) * ch;
+      var size0 = 30 + rnd() * 40;
+      cloudAt(cx0, cy0, size0);
+    }
+    // 地平线附近几缕低云，增加纵深（更小更淡，模拟远云）
+    for (ci = 0; ci < 7; ci++) {
+      cloudAt(rnd() * cw, (0.40 + rnd() * 0.06) * ch, 20 + rnd() * 24);
+    }
+
+    var texCloud = new THREE.CanvasTexture(cCloud);
+    texCloud.colorSpace = THREE.SRGBColorSpace;
+    texCloud.wrapS = THREE.RepeatWrapping;
+    texCloud.wrapT = THREE.ClampToEdgeWrapping;
+    if (rendererAniso) texCloud.anisotropy = rendererAniso;
+
+    var cloudMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(300, 48, 24),
+      new THREE.MeshBasicMaterial({
+        map: texCloud, side: THREE.BackSide, transparent: true,
+        depthWrite: false, fog: false, toneMapped: false
+      })
+    );
+    cloudMesh.renderOrder = -1;
+    scene.add(cloudMesh);
+
+    // 缓慢飘动：整层云绕 Y 轴匀速自转（约 5 分钟一圈）
+    function update(still, dt) {
+      if (!still) cloudMesh.rotation.y += dt * 0.02;
+    }
+
+    return { mesh: skyMesh, clouds: cloudMesh, update: update };
+  }
+
+  /* ================================================================== */
   /* 院落：老北京四合院（一进院 + 隔墙/垂花门 + 二进院），全部程序化 3D     */
   /* ================================================================== */
   function buildCourtyard(scene) {
@@ -942,13 +1075,11 @@
     var matGlaze = new THREE.MeshStandardMaterial({ color: 0x3d5044, roughness: 0.26, metalness: 0.08 });
     var matWater = new THREE.MeshStandardMaterial({ color: 0x2b4450, roughness: 0.08, metalness: 0.4 });
     var matFoliage = new THREE.MeshStandardMaterial({ color: 0x5c7a3c, roughness: 0.92, metalness: 0 });
-    var matTrunk = new THREE.MeshStandardMaterial({ color: 0x6d5c46, roughness: 0.96, metalness: 0 });
-    var matBgLeaf = new THREE.MeshStandardMaterial({ color: 0x54703a, roughness: 0.96, metalness: 0 });
     var matPave = new THREE.MeshStandardMaterial({ map: texPave, roughness: 1, metalness: 0 });
 
     var G = {
       brick: [], tile: [], stone: [], lattice: [], wood: [],
-      paint: [], glaze: [], water: [], foliage: [], trunk: [], bgLeaf: []
+      paint: [], glaze: [], water: [], foliage: []
     };
 
     /* ---------------- 垌地（灰砖墁地，覆盖一进院 + 二进院） ---------------- */
@@ -1119,26 +1250,6 @@
     put(G.foliage, blob(0.55), { x: -8.4, y: 0.5, z: -8.4, uv: 1 });
     put(G.foliage, blob(0.5), { x: 8.2, y: 0.45, z: -8.2, uv: 1 });
 
-    /* ---------------- 院外环境：零星杂树（填远景，不抢主体） ---------------- */
-    var bgSpots = [
-      [-30, 7, 11], [-23, -17, 9], [-35, -31, 12], [-17, 27, 10], [7, 31, 9],
-      [27, 21, 11], [35, -5, 10], [23, -29, 12], [-7, -35, 11], [13, -37, 9],
-      [34, -33, 10], [-31, 23, 9], [-41, -8, 10], [41, -18, 11]
-    ];
-    for (var bi = 0; bi < bgSpots.length; bi++) {
-      var bh = bgSpots[bi][2], bz2 = bgSpots[bi][1], bx2 = bgSpots[bi][0];
-      var th = bh * 0.42, tr = 0.2 + Math.random() * 0.09;
-      put(G.trunk, geoCyl(tr, tr * 1.6, th, 8), { x: bx2, y: th / 2, z: bz2, uv: 1.4 });
-      var bn = 2 + (Math.random() < 0.5 ? 1 : 0);
-      for (var k2 = 0; k2 < bn; k2++) {
-        put(G.bgLeaf, blob(bh * 0.17), {
-          x: bx2 + (Math.random() - 0.5) * bh * 0.15,
-          y: th + bh * 0.2 + k2 * bh * 0.15 + Math.random() * bh * 0.04,
-          z: bz2 + (Math.random() - 0.5) * bh * 0.15, uv: 1
-        });
-      }
-    }
-
     /* ---------------- 合并渲染 ---------------- */
     function merged(list, mat, cast) {
       if (!list.length) return null;
@@ -1157,8 +1268,6 @@
     merged(G.glaze, matGlaze);
     merged(G.water, matWater, false);
     merged(G.foliage, matFoliage);
-    merged(G.trunk, matTrunk, false);      // 院外杂树不投影（在阴影相机范围外）
-    merged(G.bgLeaf, matBgLeaf, false);
   }
 
   /* ================================================================== */
