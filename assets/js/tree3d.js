@@ -7,6 +7,8 @@
  * · 院落：一进院（厢房、石桌石凳、水缸花盆）+ 隔墙与垂花门 +
  *   二进院（正房）。枣树就长在一进院与二进院之间。
  * · 天空：程序化蓝天渐变 + 缓慢飘过的白云（内壁大球，无外部素材）。
+ * · 3D 导航：热点标签挂在枣树与三座建筑上，点击后相机推进到该物体前方，
+ *   随后本页淡出、目标页淡入；首页锚点则平滑滚动（无 WebGL 时退回文字按钮）。
  * · 依赖本地内置的 three.js（assets/vendor/three/three.global.js，
  *   经典脚本，暴露 window.THREE），因此 file:// 双击打开也能显示。
  * · 无 WebGL 时优雅降级：隐藏画布，保留文字层，不影响其余页面。
@@ -173,8 +175,9 @@
       camera.aspect = w / Math.max(h, 1);
       // 取景宽度：11m（四合院 24m 宽 → 主体占满画面，四周只留一线天空/地面）
       // 相机更贴近，地面与远景占比大幅下降，近似「放大倍数增大」
+      // 上限 48：竖屏手机也装得下东西厢房，保证建筑热点标签留在画面内
       var hf = Math.atan(Math.tan(camera.fov * Math.PI / 360) * camera.aspect);
-      controls.baseDist = Math.max(13, Math.min(40, 11 / Math.tan(hf)));
+      controls.baseDist = Math.max(13, Math.min(48, 11 / Math.tan(hf)));
       camera.updateProjectionMatrix();
     }
     if ('ResizeObserver' in window) {
@@ -184,14 +187,153 @@
     window.addEventListener('orientationchange', resize);
     resize();
 
+    /* ================================================================== */
+    /* 3D 导航热点：标签挂在枣树与三座建筑上，随相机逐帧投影定位            */
+    /*  · 点击 → 相机缓动推进到该物体前方 → 本页淡出、目标页淡入           */
+    /*  · 首页锚点（进入年轮）→ 平滑滚到区块，并让相机平滑送回环绕位        */
+    /*  · prefers-reduced-motion：跳过推进动画，直接执行跳转/滚动           */
+    /* ================================================================== */
+    var hotLayer = document.createElement('div');
+    hotLayer.className = 'tree-hotspots';
+    section.appendChild(hotLayer);
+
+    // pos=标签锚点（世界坐标）；to/look=推进到位后的机位与注视点
+    var HOTSPOTS = [
+      { key: 'ring', label: '进入年轮', href: '#ringEntry', solid: true,
+        pos: [-2.6, 1.9, -4.2], to: [-2.6, 3.4, 5.0], look: [-2.6, 4.7, -4.2] },
+      { key: 'people', label: '人物长廊', href: 'people.html',
+        pos: [-9.3, 3.6, -2.4], to: [-5.0, 2.7, -0.6], look: [-11.0, 3.4, -2.4] },
+      { key: 'archive', label: '史料库', href: 'archive.html',
+        pos: [9.3, 3.6, -2.4], to: [5.4, 2.8, -1.0], look: [11.0, 3.4, -2.4] },
+      { key: 'about', label: '关于我们', href: 'about.html',
+        pos: [0, 5.0, -17], to: [0, 3.0, -10.8], look: [0, 3.8, -17] }
+    ];
+
+    var hotItems = [];
+    for (var hi = 0; hi < HOTSPOTS.length; hi++) {
+      (function (h) {
+        var a = document.createElement('a');
+        a.className = 'hotspot' + (h.solid ? ' hs-solid' : '');
+        a.href = h.href;
+        a.setAttribute('data-hot', h.key);
+        var dot = document.createElement('i');
+        dot.className = 'hs-dot';
+        var lab = document.createElement('span');
+        lab.className = 'hs-label';
+        lab.textContent = h.label;
+        a.appendChild(dot);
+        a.appendChild(lab);
+        hotLayer.appendChild(a);
+        var item = {
+          key: h.key, href: h.href, el: a,
+          pos: new THREE.Vector3(h.pos[0], h.pos[1], h.pos[2]),
+          to: new THREE.Vector3(h.to[0], h.to[1], h.to[2]),
+          look: new THREE.Vector3(h.look[0], h.look[1], h.look[2]),
+          on: false
+        };
+        a.addEventListener('click', function (e) {
+          e.preventDefault();            // 右键/新标签仍可作为普通链接使用
+          activateHotspot(item);         // item.to / item.look 为 Vector3
+        });
+        hotItems.push(item);
+      })(HOTSPOTS[hi]);
+    }
+
+    var fly = null;                     // 相机推进状态；null = 环绕控制接管
+    var lookPoint = focus.clone();      // 相机注视点（平时恒等于 focus）
+
+    function easeInOut(k) {
+      return k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    }
+
+    function startFly(toPos, toLook, dur, done) {
+      fly = {
+        t: 0, dur: Math.max(dur, 0.0001),
+        p0: camera.position.clone(), p1: toPos.clone(),
+        l0: lookPoint.clone(), l1: toLook.clone(),
+        done: done
+      };
+      hotLayer.classList.add('flying');
+    }
+
+    function activateHotspot(h) {
+      if (fly) return;                          // 推进中忽略重复点击
+      if (reduceMotion) { arriveHotspot(h); return; }
+      startFly(h.to, h.look, 1.5, function () { arriveHotspot(h); });
+    }
+
+    function arriveHotspot(h) {
+      if (h.href.charAt(0) === '#') {
+        // 页内锚点：滚到目标区块，同时把相机平滑送回环绕位
+        var target = document.querySelector(h.href);
+        if (target && target.scrollIntoView) {
+          target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        }
+        if (reduceMotion) {
+          var orb = controls.pose(focus);
+          camera.position.copy(orb);
+          lookPoint.copy(focus);
+          camera.lookAt(lookPoint);
+          camera.updateMatrixWorld();
+          hotLayer.classList.remove('flying');
+        } else {
+          startFly(controls.pose(focus), focus, 0.9, function () {
+            hotLayer.classList.remove('flying');
+          });
+        }
+      } else {
+        // 跨页：记下「由 3D 进入」标记 → 本页淡出 → 跳转（目标页据此淡入）
+        try { sessionStorage.setItem('nav3d', '1'); } catch (err) { }
+        document.body.classList.add('page-leaving');
+        setTimeout(function () { location.href = h.href; }, reduceMotion ? 140 : 460);
+      }
+    }
+
+    /* 逐帧把锚点世界坐标投影成屏幕坐标；标签跟随物体，出画则隐藏、贴边收拢 */
+    var hp = new THREE.Vector3();
+    function updateHotspots() {
+      var w = section.clientWidth, h = section.clientHeight, pad = 58;
+      for (var i = 0; i < hotItems.length; i++) {
+        var it = hotItems[i];
+        hp.copy(it.pos).project(camera);
+        var vis = hp.z < 1 &&
+          hp.x > -1.45 && hp.x < 1.45 && hp.y > -1.45 && hp.y < 1.45;
+        if (vis) {
+          it.el.style.left = clamp((hp.x * 0.5 + 0.5) * w, pad, Math.max(pad, w - pad)).toFixed(1) + 'px';
+          it.el.style.top = clamp((-hp.y * 0.5 + 0.5) * h, pad, Math.max(pad, h - pad)).toFixed(1) + 'px';
+        }
+        if (vis !== it.on) {
+          it.on = vis;
+          it.el.classList.toggle('off', !vis);
+        }
+      }
+    }
+
     /* ---------------- 渲染循环 ---------------- */
     var clock = new THREE.Clock();
     function frame() {
       var dt = Math.min(clock.getDelta(), 0.05);
       wind.value = reduceMotion ? 0 : clock.elapsedTime;
       sky.update(reduceMotion, dt);
-      controls.update(dt);
-      controls.apply(camera, focus);
+      if (fly) {
+        fly.t += dt;
+        var k = Math.min(1, fly.t / fly.dur);
+        var e = easeInOut(k);
+        camera.position.lerpVectors(fly.p0, fly.p1, e);
+        lookPoint.lerpVectors(fly.l0, fly.l1, e);
+        camera.lookAt(lookPoint);
+        if (k >= 1) {
+          var done = fly.done;
+          fly = null;               // 先清状态，回调里可再次发起（回位飞行）
+          if (done) done();
+        }
+      } else {
+        controls.update(dt);
+        controls.apply(camera, focus);
+        lookPoint.copy(focus);
+      }
+      camera.updateMatrixWorld();     // 供 .project() 使用（含 matrixWorldInverse）
+      updateHotspots();
       renderer.render(scene, camera);
       requestAnimationFrame(frame);
     }
@@ -221,7 +363,14 @@
       THREE: THREE, renderer: renderer, scene: scene, camera: camera,
       counts: { leaves: leaves.count, fruits: fruits.count, tips: store.tips.length },
       objects: scene.children.length,
-      restore: restoreTextures, backups: textureBackups.length
+      restore: restoreTextures, backups: textureBackups.length,
+      hotspots: hotItems.map(function (it) {
+        return {
+          key: it.key, href: it.href, el: it.el,
+          get visible() { return it.on; }   // 实时读取，便于自动化检查
+        };
+      }),
+      flying: function () { return !!fly; }
     };
   }
 
@@ -1328,8 +1477,19 @@
       camera.lookAt(focus);
     }
 
+    // 当前环绕机位（热点推进后的「回位飞行」起点/终点用）
+    function pose(focus) {
+      var d = baseDist;
+      var ce = Math.cos(el);
+      return new THREE.Vector3(
+        focus.x + Math.sin(az) * ce * d,
+        focus.y + Math.sin(el) * d,
+        focus.z + Math.cos(az) * ce * d
+      );
+    }
+
     return {
-      update: update, apply: apply,
+      update: update, apply: apply, pose: pose,
       get baseDist() { return baseDist; },
       set baseDist(v) { baseDist = v; }
     };

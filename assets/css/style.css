@@ -133,6 +133,7 @@ h3 { font-size: 19px; }
   position: relative;
   overflow: hidden;
   padding: 46px 0 30px;
+  scroll-margin-top: 68px;   /* 3D 热点「进入年轮」滚动落位，避开置顶导航 */
 }
 .hero-grid {
   display: grid;
@@ -266,7 +267,12 @@ h3 { font-size: 19px; }
   max-width: 42em;
   margin: 0 auto 26px;
 }
-.opening-actions { pointer-events: auto; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+/* 常规时隐藏：导航入口改由 3D 热点承担；无 WebGL 时重新显示以保证可导航 */
+.opening-actions { display: none; }
+.opening.no-webgl .opening-actions {
+  pointer-events: auto; display: flex; gap: 12px;
+  justify-content: center; flex-wrap: wrap;
+}
 .opening-hint {
   position: absolute;
   left: 50%;
@@ -295,6 +301,109 @@ h3 { font-size: 19px; }
 .opening.no-webgl::after { background: none; }
 @media (prefers-reduced-motion: reduce) {
   .opening-hint i { animation: none; }
+}
+
+/* ---------------- 3D 导航热点（标签挂在树/建筑上，随相机投影移动） -------- */
+.tree-hotspots {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .7s ease .35s, visibility 0s linear .35s;
+}
+.opening.tree-ready .tree-hotspots {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .7s ease .35s, visibility 0s linear 0s;
+}
+.opening.no-webgl .tree-hotspots { display: none; }
+/* 相机推进过程中收起标签，避免与画面主体打架 */
+.tree-hotspots.flying .hotspot {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(.92);
+}
+.hotspot {
+  position: absolute;
+  left: -999px;
+  top: -999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 7px 11px;
+  border-radius: 999px;
+  background: rgba(251, 247, 238, .93);
+  border: 1px solid rgba(107, 74, 47, .32);
+  box-shadow: 0 6px 18px rgba(43, 33, 24, .22);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  transition: opacity .35s ease, transform .35s ease,
+              background .2s, color .2s, border-color .2s;
+}
+.hotspot.off { opacity: 0; pointer-events: none; }
+.hotspot:hover, .hotspot:focus-visible {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  text-decoration: none;
+  outline: none;
+}
+.hotspot .hs-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--red);
+  box-shadow: 0 0 0 4px rgba(140, 31, 40, .16);
+  animation: hsPulse 2.2s ease-out infinite;
+}
+.hotspot:hover .hs-dot, .hotspot:focus-visible .hs-dot {
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .3);
+  animation: none;
+}
+.hotspot.hs-solid {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(140, 31, 40, .35);
+}
+.hotspot.hs-solid .hs-dot {
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, .3);
+}
+.hotspot.hs-solid:hover { background: var(--red-2); border-color: var(--red-2); }
+@keyframes hsPulse {
+  0% { box-shadow: 0 0 0 0 rgba(140, 31, 40, .35); }
+  70% { box-shadow: 0 0 0 9px rgba(140, 31, 40, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(140, 31, 40, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hotspot .hs-dot { animation: none; }
+}
+
+/* ---------------- 页面淡出淡入（3D 导航交接：离场页 → 目标页） ----------- */
+body { transition: opacity .45s ease; }
+body.page-leaving { opacity: 0; }
+@keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+.fade-in body { animation: pageIn .55s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  .fade-in body { animation: none; }
+}
+
+/* 竖屏：开场文字改置顶，把下方画面让给热点标签，避免标签压住标题 */
+@media (max-width: 700px) {
+  .opening { align-items: flex-start; }
+  .opening-inner { transform: none; padding-top: 7vh; }
+  .hotspot { font-size: 13px; padding: 6px 12px 6px 10px; gap: 6px; }
 }
 
 /* ------------------------------ 首页 说明条 ------------------------------ */
