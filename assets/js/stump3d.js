@@ -246,9 +246,12 @@
 
     /* ---------------- 尺寸参数（场景单位） ---------------- */
     var R = 1.0;                 // 木墩顶面半径
-    var THICK = 0.30;            // 木墩厚度
+    var THICK = 0.30;            // 木墩厚度（截面以上保留的墩身）
+    var TRUNK_H = 1.05;          // 截面之上继续生长的树干高度
     var CORE_R = 0.075 * R;
     var ROOT_R = 1.46;           // 根系外缘（比木墩大，向外抓地）
+    // 整体包围球半径（用于相机取景）：横向取根系，纵向取树干顶
+    var SCENE_R = Math.max(ROOT_R, TRUNK_H * 0.75 + THICK * 0.5 + 0.25) * 1.04;
 
     var root = new THREE.Group();
     scene.add(root);
@@ -287,6 +290,17 @@
     /* ---------------- 树桩主体：按块拆分，块间留缝 ---------------- */
     var ringBaseY = THICK / 2;
     var relief = buildRingRelief(n, R, CORE_R);   // 年轮高低起伏曲线
+
+    /* 内芯：一个完整的实心圆柱体，塞在分块之间。
+       分块之间的裂缝只会露出这层实心木芯，不会看到「中空的内部」。 */
+    var coreProf = wobbleProfile(5150, 0.012);
+    var trunkProfile = wobbleProfile(8321, 0.05);   // 树干侧影起伏
+    var coreMesh = new THREE.Mesh(
+      trunkBodyGeometry(TRUNK_H, R * 1.005, coreProf, trunkProfile, THICK / 2,
+        THICK / 2 + TRUNK_H, 1),
+      barkMat);
+    coreMesh.castShadow = true; coreMesh.receiveShadow = true;
+    root.add(coreMesh);
 
     for (var q = 0; q < sectors.length; q++) {
       var sec = sectors[q];
@@ -386,9 +400,9 @@
       canvas.style.height = h + 'px';
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
-      // 依据纵横比让「树桩 + 根系」完整入画
-      var fit = ROOT_R / Math.tan(camera.fov * Math.PI / 360);
-      ctrl.baseDist = fit / Math.min(1, camera.aspect) * 1.28;
+      // 依据纵横比让「树干 + 树桩 + 根系」整体完整入画
+      var fit = SCENE_R / Math.tan(camera.fov * Math.PI / 360);
+      ctrl.baseDist = fit / Math.min(1, camera.aspect) * 1.18;
       camera.updateProjectionMatrix();
     }
     if ('ResizeObserver' in window) {
@@ -398,8 +412,8 @@
     window.addEventListener('resize', resize);
     resize();
 
-    // 视线焦点略低于墩面，让根系也能进画面
-    focus.set(0, -0.16, 0);
+    // 视线焦点上移到「树干根部 + 墩面」之间，根系与树干都能进画面
+    focus.set(0, TRUNK_H * 0.30, 0);
 
     /* ---------------- 拾取 / 悬停 ---------------- */
     var ray = new THREE.Raycaster();
@@ -640,6 +654,63 @@
     return g;
   }
 
+  /* ================================================================== */
+  /* 树干：截面之上继续生长的实心躯干（含树心内芯）                        */
+  /* ------------------------------------------------------------------ */
+  /* 这个几何体同时承担两个作用：
+     1. 从树桩顶面往上长出一段真实树干，让「树桩」看起来属于一棵树；
+     2. 它比木墩略大一点、填满分块之间的缝隙，
+        这样裂缝里露出来的是实心木芯，而不是里面空心的「内壁」。 */
+  function trunkBodyGeometry(height, radius, feetProfile, sideProfile, yBase, yTop, inner) {
+    var positions = [], normals = [], uvs = [], indices = [];
+    var VSEG = 10;
+    var flare = 0.06;                 // 根部外扩
+    for (var ai = 0; ai <= SEG; ai++) {
+      var a = ai / SEG * Math.PI * 2;
+      var kf = profileAt(feetProfile, a);
+      var ks = profileAt(sideProfile, a);
+      for (var vi = 0; vi <= VSEG; vi++) {
+        var f = vi / VSEG;
+        // 底部外扩（板根过渡），往上收细并带纵向起伏
+        var r = radius * kf * ks * (1 + flare * Math.pow(1 - f, 2.2) - 0.10 * f);
+        var y = lerp(yBase, yTop, f);
+        positions.push(Math.cos(a) * r, y, Math.sin(a) * r);
+        normals.push(Math.cos(a), 0.12, Math.sin(a));
+        uvs.push(ai / SEG * 3, f * 2.2);
+      }
+    }
+    var rowLen = VSEG + 1;
+    for (var ai2 = 0; ai2 < SEG; ai2++) {
+      for (var vi2 = 0; vi2 < VSEG; vi2++) {
+        var b = ai2 * rowLen + vi2;
+        indices.push(b, b + rowLen, b + 1, b + 1, b + rowLen, b + rowLen + 1);
+      }
+    }
+    // 顶盖：封闭树干顶端，避免从上往下看穿中空
+    var capBase = positions.length / 3;
+    positions.push(0, yTop, 0);
+    normals.push(0, 1, 0);
+    uvs.push(0.5, 0.5);
+    for (var ai3 = 0; ai3 <= SEG; ai3++) {
+      var a3 = ai3 / SEG * Math.PI * 2;
+      var kf3 = profileAt(feetProfile, a3), ks3 = profileAt(sideProfile, a3);
+      var r3 = radius * kf3 * ks3 * (1 - 0.10);
+      positions.push(Math.cos(a3) * r3, yTop, Math.sin(a3) * r3);
+      normals.push(0, 1, 0);
+      uvs.push(0.5 + Math.cos(a3) * 0.5, 0.5 + Math.sin(a3) * 0.5);
+    }
+    for (var ai4 = 0; ai4 < SEG; ai4++) {
+      indices.push(capBase, capBase + 1 + ai4, capBase + 2 + ai4);
+    }
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    g.setIndex(indices);
+    g.computeVertexNormals();
+    return g;
+  }
+
   function sideWallSectorGeometry(a0, a1, profile, R, thickness, seed) {
     var VSEG = 5;
     var rnd = mulberry32(9000 + seed * 131);
@@ -709,40 +780,63 @@
 
   /* ================================================================== */
   /* 树根：从墩底向外抓地的锥形根 + 隆起根盘                              */
-  /* ================================================================== */
+  /* ------------------------------------------------------------------ */
+  /* 不用固定条数、不用均分角度：数量随机 7—11 条，角度带较大抖动，
+     粗细/长短/下探/弯曲各不相同，并让相邻根在根部互相交叠，
+     看起来是一圈自然生长的板根，而不是「一圈等分的爪子」。 */
   function buildRoots(root, R, THICK, ROOT_R, barkMat, cortexMat, seed) {
     var rnd = mulberry32(seed + 7);
     var yBase = -THICK / 2;
 
-    var collar = new THREE.Mesh(rootCollarGeometry(R, ROOT_R * 0.82, yBase, 0.10), barkMat);
+    var collar = new THREE.Mesh(
+      rootCollarGeometry(R * 0.96, ROOT_R * 0.80, yBase, 0.11, seed), barkMat);
     collar.castShadow = true; collar.receiveShadow = true;
     root.add(collar);
 
-    var count = 7;
-    for (var i = 0; i < count; i++) {
-      var a = (i / count) * Math.PI * 2 + (rnd() - 0.5) * 0.5;
-      var geo = rootTendrilGeometry(a, R * 0.92, ROOT_R, yBase, rnd);
-      var m = new THREE.Mesh(geo, rnd() < 0.5 ? barkMat : cortexMat);
-      m.castShadow = true; m.receiveShadow = true;
-      root.add(m);
+    // 主根：条数随机，角度不均匀分布
+    var mainCount = 7 + Math.floor(rnd() * 5);      // 7—11 条
+    var angles = [];
+    for (var i = 0; i < mainCount; i++) {
+      // 基准均分 + 大抖动，再整体随机旋转一次
+      var base = (i / mainCount) * Math.PI * 2 + (rnd() - 0.5) * 1.15;
+      angles.push(base + (rnd() - 0.5) * 0.4);
     }
-    for (var k = 0; k < count; k++) {
-      var a2 = (k / count) * Math.PI * 2 + 0.4 + (rnd() - 0.5) * 0.6;
-      var geo2 = rootTendrilGeometry(a2, R * 0.55, ROOT_R * 1.06, yBase - 0.02, rnd, 0.5);
+    for (var m = 0; m < mainCount; m++) {
+      var a = angles[m];
+      var lenJit = 0.72 + rnd() * 0.55;             // 长短差异明显
+      var geo = rootTendrilGeometry(a, R * (0.86 + rnd() * 0.14), ROOT_R * lenJit,
+        yBase + (rnd() - 0.5) * 0.03, rnd, 0.82 + rnd() * 0.5);
+      var mesh = new THREE.Mesh(geo, rnd() < 0.55 ? barkMat : cortexMat);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      root.add(mesh);
+    }
+    // 次级细根：数量也随机，插在主根之间、更细更短
+    var secCount = 4 + Math.floor(rnd() * 5);
+    for (var k = 0; k < secCount; k++) {
+      var a2 = rnd() * Math.PI * 2;
+      var geo2 = rootTendrilGeometry(a2, R * (0.45 + rnd() * 0.25),
+        ROOT_R * (0.55 + rnd() * 0.5), yBase - 0.02 - rnd() * 0.04, rnd,
+        0.34 + rnd() * 0.3);
       var m2 = new THREE.Mesh(geo2, barkMat);
       m2.castShadow = true;
       root.add(m2);
     }
   }
 
-  function rootCollarGeometry(rIn, rOut, y, drop) {
+  function rootCollarGeometry(rIn, rOut, y, drop, seed) {
     var positions = [], normals = [], uvs = [], indices = [];
+    var rnd = mulberry32(1234 + (seed || 0));
+    // 根盘外缘也不是正圆：叠加多条低频扰动
+    var p1 = rnd() * 6.28, p2 = rnd() * 6.28, p3 = rnd() * 6.28;
+    var k1 = 3 + Math.floor(rnd() * 3), k2 = 6 + Math.floor(rnd() * 5), k3 = 12 + Math.floor(rnd() * 6);
+    var a1 = 0.07 + rnd() * 0.05, a2 = 0.035 + rnd() * 0.03, a3 = 0.015 + rnd() * 0.02;
     for (var i = 0; i <= SEG; i++) {
       var a = i / SEG * Math.PI * 2;
       var ca = Math.cos(a), sa = Math.sin(a);
-      var wob = 1 + 0.05 * Math.sin(a * 5.1) + 0.03 * Math.sin(a * 9.3);
+      var wob = 1 + a1 * Math.sin(a * k1 + p1) + a2 * Math.sin(a * k2 + p2) + a3 * Math.sin(a * k3 + p3);
+      var dropJit = drop * (0.7 + 0.6 * Math.abs(Math.sin(a * 2.3 + p1)));
       positions.push(ca * rIn, y + 0.01, sa * rIn);
-      positions.push(ca * rOut * wob, y - drop, sa * rOut * wob);
+      positions.push(ca * rOut * wob, y - dropJit, sa * rOut * wob);
       normals.push(0, 1, 0, 0, 1, 0);
       uvs.push(i / SEG, 0, i / SEG, 1);
     }
@@ -761,20 +855,23 @@
 
   function rootTendrilGeometry(angle, rStart, rEnd, yBase, rnd, scale) {
     scale = scale || 1;
-    var LEN = 14, CROSS = 6;
+    var LEN = 16, CROSS = 7;
     var positions = [], normals = [], uvs = [], indices = [];
-    var yDrop = 0.26 * scale + rnd() * 0.1;
-    var wob = (rnd() - 0.5) * 0.5;
-    var thick0 = (0.075 + rnd() * 0.03) * scale;
-    var thick1 = thick0 * 0.24;
+    var yDrop = (0.24 + rnd() * 0.16) * scale;
+    // 左右摆动 + 上下起伏，让根不是一条笔直的光滑锥
+    var wob = (rnd() - 0.5) * 0.9;
+    var wob2 = (rnd() - 0.5) * 1.7;
+    var bobAmp = (rnd() - 0.5) * 0.09;
+    var thick0 = (0.055 + rnd() * 0.055) * scale;
+    var thick1 = thick0 * (0.18 + rnd() * 0.16);
     var path = [];
     for (var i = 0; i <= LEN; i++) {
       var f = i / LEN;
       path.push({
-        r: lerp(rStart, rEnd, Math.pow(f, 0.82)),
-        a: angle + wob * f * f,
-        y: yBase - Math.pow(f, 1.3) * yDrop,
-        t: lerp(thick0, thick1, f)
+        r: lerp(rStart, rEnd, Math.pow(f, 0.78 + rnd() * 0.12)),
+        a: angle + wob * f * f + wob2 * Math.pow(f, 2.6),
+        y: yBase - Math.pow(f, 1.25) * yDrop + Math.sin(f * 5.2) * bobAmp,
+        t: lerp(thick0, thick1, Math.pow(f, 0.9)) * (1 + 0.18 * Math.sin(f * 7.3))
       });
     }
     for (var s = 0; s <= LEN; s++) {
@@ -819,7 +916,7 @@
   /* 相机控制：拖拽环绕（不自动旋转）                                    */
   /* ================================================================== */
   function createControls(canvas, reduceMotion) {
-    var az = -0.5, el = 0.46;          // 略俯的三/四视角：既能看清年轮面，又能看到侧壁树皮与树根
+    var az = -0.5, el = 0.62;          // 俯视角稍大：能看清年轮面，又不会被缝隙「看穿」内部
     var tAz = az, tEl = el;
     var dragging = false, moved = false;
     var lastX = 0, lastY = 0, idle = 10;
