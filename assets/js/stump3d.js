@@ -375,8 +375,14 @@
 
     function resize() {
       var w = stage.clientWidth || 560;
-      var h = Math.max(320, Math.min(700, w * 0.88));
-      canvas.style.width = '100%';
+      var wrap = stage.parentNode;
+      // 让树桩铺满 .stump-wrap 的高度（上限 900，避免超大屏拉太长）
+      var wrapH = wrap && wrap.clientHeight ? wrap.clientHeight : 0;
+      // 正方形容器：树桩是圆形，方形容器能把它撑到最大、左右不留大片空白
+      var side = Math.max(320, Math.min(900, Math.min(w, wrapH || w)));
+      var h = side;
+      w = Math.min(w, side);
+      canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
@@ -385,7 +391,10 @@
       ctrl.baseDist = fit / Math.min(1, camera.aspect) * 1.28;
       camera.updateProjectionMatrix();
     }
-    if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(resize).observe(stage);
+      if (stage.parentNode) new ResizeObserver(resize).observe(stage.parentNode);
+    }
     window.addEventListener('resize', resize);
     resize();
 

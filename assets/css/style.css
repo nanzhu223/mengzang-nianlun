@@ -131,7 +131,7 @@ h3 { font-size: 19px; }
 /* ------------------------------ 首页：俯视树桩横截面（SVG 分层） ------------------------------ */
 .stump-hero {
   position: relative;
-  padding: 44px 0 26px;
+  padding: 20px 0 10px;
   scroll-margin-top: 68px;   /* 3D 热点「进入年轮」滚动落位，避开置顶导航 */
   text-align: center;
   background:
@@ -143,8 +143,12 @@ h3 { font-size: 19px; }
 
 .stump-wrap {
   position: relative;
-  width: min(880px, 96vw);
+  width: min(1080px, 94vw);
+  min-height: min(78vh, 1080px);
   margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .stump-stage { position: relative; width: 100%; }
 
@@ -264,17 +268,6 @@ h3 { font-size: 19px; }
 .stump-play.on { background: var(--red); color: #fff; }
 .stump-play.on b { animation: spinPulse 1.1s linear infinite; }
 @keyframes spinPulse { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-.stump-legend {
-  display: flex; flex-wrap: wrap; gap: 8px;
-  justify-content: center; margin-top: 18px; padding: 0 20px;
-}
-.chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  font-size: 12.5px; padding: 4px 11px; border-radius: 999px;
-  background: var(--paper-3); border: 1px solid var(--line); color: var(--ink-soft);
-}
-.chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 
 /* ------------------------------ 底部年代导航条 ------------------------------ */
 .stump-nav-section { padding: 8px 0 46px; }
@@ -856,9 +849,9 @@ body.page-leaving { opacity: 0; }
   .opening-title { letter-spacing: .12em; text-indent: .12em; }
   .opening-hint { bottom: 10px; font-size: 11px; }
   /* 树桩圆盘：小屏下卡片更小、中心按钮收小 */
-  .stump-hero { padding: 30px 0 18px; }
+  .stump-hero { padding: 12px 0 6px; }
   .stump-heading h1 { font-size: 22px; }
-  .stump-wrap { width: 108vw; }
+  .stump-wrap { width: 100%; min-height: 62vh; }
   .stump-card { padding: 4px 8px; gap: 5px; max-width: 130px; }
   .stump-card .sc-year { font-size: 12px; }
   .stump-card .sc-title { display: none; }
