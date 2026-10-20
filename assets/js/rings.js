@@ -324,6 +324,25 @@
   }
 
   function boot() {
+    // 时间轴速览（11 株枣树生长阶段）与说明卡片：与年轮图无关，始终渲染
+    const strip = document.getElementById('timelineStrip');
+    if (strip) buildTreeStrip(strip);
+
+    const stat = document.getElementById('statBox');
+    if (stat) {
+      stat.innerHTML = [
+        ['11', '个年轮节点', '由清初到 2024 年'],
+        ['近 400', '年树龄', '始植于清初'],
+        ['4', '大互动模块', '年轮 / 人物 / 史料 / 智能体'],
+        ['10', '位人物档案', '革命先驱与蒙藏学校学生']
+      ].map(function (s) {
+        return '<div class="note"><h4 style="font-size:26px;color:var(--bark);margin-bottom:2px">' + s[0] + '</h4>' +
+          '<div style="font-family:var(--serif)">' + s[1] + '</div>' +
+          '<p>' + s[2] + '</p></div>';
+      }).join('');
+    }
+
+    // 2D 年轮 SVG：仅当页面保留了 #ringStage 时才渲染（当前首页由 3D 树桩接管）
     const stage = document.getElementById('ringStage');
     if (!stage) return;
     stage.innerHTML = buildRingSVG();
@@ -387,25 +406,6 @@
     });
     function go(i) {
       location.href = 'era.html?era=' + S.ERAS[i].id;
-    }
-
-    // 时间轴速览：11 株枣树（清初幼苗 → 2024 参天大树）
-    const strip = document.getElementById('timelineStrip');
-    if (strip) buildTreeStrip(strip);
-
-    // 说明卡片数据
-    const stat = document.getElementById('statBox');
-    if (stat) {
-      stat.innerHTML = [
-        ['11', '个年轮节点', '由清初到 2024 年'],
-        ['近 400', '年树龄', '始植于清初'],
-        ['4', '大互动模块', '年轮 / 人物 / 史料 / 智能体'],
-        ['10', '位人物档案', '革命先驱与蒙藏学校学生']
-      ].map(function (s) {
-        return '<div class="note"><h4 style="font-size:26px;color:var(--bark);margin-bottom:2px">' + s[0] + '</h4>' +
-          '<div style="font-family:var(--serif)">' + s[1] + '</div>' +
-          '<p>' + s[2] + '</p></div>';
-      }).join('');
     }
   }
 

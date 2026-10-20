@@ -128,67 +128,146 @@ h3 { font-size: 19px; }
   box-shadow: var(--shadow);
 }
 
-/* ------------------------------ 首页 年轮 ------------------------------ */
-.hero {
+/* ------------------------------ 首页：俯视树桩横截面（SVG 分层） ------------------------------ */
+.stump-hero {
   position: relative;
-  overflow: hidden;
-  padding: 46px 0 30px;
+  padding: 44px 0 26px;
   scroll-margin-top: 68px;   /* 3D 热点「进入年轮」滚动落位，避开置顶导航 */
+  text-align: center;
+  background:
+    radial-gradient(58% 46% at 50% 42%, rgba(201, 162, 106, .20), transparent 72%);
 }
-.hero-grid {
-  display: grid;
-  grid-template-columns: minmax(300px, 1.05fr) minmax(280px, .95fr);
-  gap: 40px;
-  align-items: center;
+.stump-heading { max-width: 720px; margin: 0 auto 16px; padding: 0 20px; }
+.stump-heading h1 { margin: 6px 0 10px; }
+.stump-heading .muted { max-width: 640px; margin: 0 auto; }
+
+.stump-wrap {
+  position: relative;
+  width: min(880px, 96vw);
+  margin: 0 auto;
 }
-.hero-copy h1 { margin-bottom: 8px; }
-.hero-copy .lead { font-family: var(--kai); font-size: 17.5px; }
-.hero-actions { margin-top: 22px; display: flex; gap: 12px; flex-wrap: wrap; }
+.stump-stage { position: relative; width: 100%; }
 
-.ring-stage { position: relative; }
-.ring-stage svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 18px 40px rgba(60, 40, 20, .22)); }
-.ring-band { cursor: pointer; transition: opacity .25s, filter .25s; transform-origin: 400px 400px; }
-.ring-band:hover { filter: brightness(1.12) saturate(1.25); }
-.ring-band.dim { opacity: .32; }
-.ring-hit { cursor: pointer; fill: none; }
-.ring-label-line { stroke: rgba(107, 74, 47, .55); stroke-width: 1; stroke-dasharray: 3 3; }
-.ring-label-line.hl { stroke: var(--red); stroke-width: 1.6; stroke-dasharray: none; }
-.ring-label-bg { fill: var(--paper-2); stroke: var(--line); }
-.ring-label-bg.hl { fill: var(--red); stroke: var(--red); }
-.ring-label-text { font-family: var(--serif); font-size: 15px; fill: var(--ink); pointer-events: none; }
-.ring-label-text.hl { fill: #fff; font-weight: 700; }
-.ring-year-text { font-size: 11px; fill: var(--ink-soft); pointer-events: none; }
-.ring-year-text.hl { fill: rgba(255, 255, 255, .85); }
-.ring-core-text { font-family: var(--kai); fill: var(--bark); font-size: 13px; letter-spacing: .1em; }
-
-.sprout { transform-origin: center; animation: sprout 3.2s ease-in-out infinite; }
-@keyframes sprout {
-  0%, 100% { transform: scale(1) rotate(0deg); opacity: .95; }
-  50% { transform: scale(1.14) rotate(-4deg); opacity: 1; }
+/* ---------- 3D 树桩（three.js） ---------- */
+.stump-canvas3d {
+  display: block;
+  width: 100%;
+  touch-action: pan-y;
+  cursor: grab;
+  filter: drop-shadow(0 26px 52px rgba(60, 40, 20, .32));
+  animation: stumpIn 1.1s cubic-bezier(.2,.8,.28,1) both;
 }
-
-.ring-tip {
-  position: absolute;
-  pointer-events: none;
-  transform: translate(-50%, -130%);
-  background: var(--ink);
-  color: var(--paper);
-  padding: 7px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  white-space: nowrap;
+.stump-canvas3d.grabbing { cursor: grabbing; }
+.stump-3d-tip {
+  position: absolute; pointer-events: none;
+  transform: translate(-50%, -140%);
+  background: var(--ink); color: var(--paper);
+  padding: 7px 12px; border-radius: 8px;
+  font-size: 13px; max-width: 260px; text-align: left;
+  white-space: normal; line-height: 1.5;
   box-shadow: var(--shadow-lg);
-  opacity: 0;
-  transition: opacity .16s;
-  z-index: 5;
+  opacity: 0; transition: opacity .16s; z-index: 6;
 }
-.ring-tip.on { opacity: 1; }
-.ring-tip b { color: var(--gold-soft); font-family: var(--serif); letter-spacing: .06em; }
-.ring-tip span { display: block; font-size: 12px; opacity: .8; }
+.stump-3d-tip.on { opacity: 1; }
+.stump-3d-tip b { color: var(--gold-soft); font-family: var(--serif); letter-spacing: .06em; }
+.stump-3d-tip span { display: block; font-size: 12px; opacity: .82; margin-top: 2px; }
+/* 3D 就绪时隐藏 SVG 回退层的提示与标签 */
+.stump3d-ready .stump-cards,
+.stump3d-ready .stump-tip { display: none; }
+/* 3D 不可用时（回退到 SVG）隐藏 3D 画布提示 */
+.stump-fallback .stump-3d-tip { display: none; }
+.stump-svg {
+  display: block; width: 100%; height: auto;
+  filter: drop-shadow(0 28px 56px rgba(60, 40, 20, .32));
+  animation: stumpIn 1.1s cubic-bezier(.2,.8,.28,1) both;
+}
+@keyframes stumpIn {
+  from { opacity: 0; transform: scale(.94); }
+  to { opacity: 1; transform: scale(1); }
+}
 
-.ring-legend {
+/* 年轮环 */
+.stump-band { transition: opacity .25s; }
+.stump-band.on { filter: brightness(1.1) saturate(1.2); }
+.stump-edge { fill: none; stroke: rgba(78, 50, 28, .5); stroke-width: 1.2; }
+.stump-core { fill: #c9a877; stroke: rgba(78, 50, 28, .5); stroke-width: 1.4; }
+.stump-bark { stroke: #5c3f27; stroke-width: 13; stroke-linecap: round; opacity: .95; }
+.stump-rays line { pointer-events: none; }
+
+/* 裂纹 */
+.crack main { transition: stroke .2s; }
+.crack-hi {
+  stroke: rgba(214, 186, 146, .30); stroke-width: 1; stroke-linecap: round;
+  transform: translate(0.8px, 0.8px); pointer-events: none;
+}
+.crack.on main { stroke: var(--red); filter: drop-shadow(0 0 4px rgba(140,31,40,.5)); }
+
+/* 引线 */
+.stump-lead {
+  fill: none; stroke: rgba(107, 74, 47, .5);
+  stroke-width: 1.1; stroke-dasharray: 3 3;
+  transition: stroke .2s, stroke-width .2s;
+}
+.stump-lead.on { stroke: var(--red); stroke-width: 1.8; stroke-dasharray: none; }
+.stump-lead-dot { fill: rgba(107, 74, 47, .75); transition: fill .2s; }
+.stump-lead-dot.on { fill: var(--red); }
+
+/* 外层卡片层（DOM，绝对定位覆盖在 SVG 上） */
+.stump-cards { position: absolute; inset: 0; pointer-events: none; }
+.stump-card {
+  position: absolute; transform: translate(-50%, -50%);
+  pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: 7px;
+  max-width: 190px;
+  padding: 6px 12px; border-radius: 999px;
+  background: rgba(251, 247, 238, .94);
+  border: 1px solid rgba(107, 74, 47, .26);
+  box-shadow: 0 3px 12px rgba(43, 33, 24, .14);
+  font-family: var(--sans); color: var(--ink); text-align: left;
+  white-space: nowrap;
+  transition: background .2s, box-shadow .2s, transform .2s, color .2s;
+}
+.stump-card .sc-swatch { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; }
+.stump-card .sc-year { font-family: var(--serif); font-size: 14px; color: var(--red); letter-spacing: .03em; }
+.stump-card .sc-title {
+  font-size: 11.5px; color: var(--ink-soft);
+  max-width: 128px; overflow: hidden; text-overflow: ellipsis;
+}
+.stump-card:hover, .stump-card:focus-visible, .stump-card.on {
+  background: var(--red); border-color: var(--red); color: #fff; outline: none;
+  box-shadow: 0 8px 22px rgba(140, 31, 40, .34);
+  transform: translate(-50%, -50%) scale(1.05);
+}
+.stump-card:hover .sc-year, .stump-card:hover .sc-title,
+.stump-card:focus-visible .sc-year, .stump-card:focus-visible .sc-title,
+.stump-card.on .sc-year, .stump-card.on .sc-title { color: #fff; }
+
+/* 中心操作按钮 */
+.stump-center {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.stump-play {
+  pointer-events: auto;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  width: 84px; height: 84px; border-radius: 50%;
+  border: 1px solid rgba(140, 31, 40, .42);
+  background: rgba(251, 247, 238, .9);
+  color: var(--red); cursor: pointer;
+  font-family: var(--sans); font-size: 11px;
+  box-shadow: 0 6px 22px rgba(43, 33, 24, .2);
+  transition: .22s;
+}
+.stump-play b { font-size: 18px; line-height: 1; }
+.stump-play:hover { background: var(--red); color: #fff; transform: scale(1.06); }
+.stump-play.on { background: var(--red); color: #fff; }
+.stump-play.on b { animation: spinPulse 1.1s linear infinite; }
+@keyframes spinPulse { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.stump-legend {
   display: flex; flex-wrap: wrap; gap: 8px;
-  justify-content: center; margin-top: 8px;
+  justify-content: center; margin-top: 18px; padding: 0 20px;
 }
 .chip {
   display: inline-flex; align-items: center; gap: 6px;
@@ -196,6 +275,32 @@ h3 { font-size: 19px; }
   background: var(--paper-3); border: 1px solid var(--line); color: var(--ink-soft);
 }
 .chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* ------------------------------ 底部年代导航条 ------------------------------ */
+.stump-nav-section { padding: 8px 0 46px; }
+.stump-nav-section .wrap { overflow: hidden; }
+.stump-nav {
+  display: flex; gap: 10px; overflow-x: auto;
+  padding: 6px 2px 12px;
+  scrollbar-width: thin;
+  width: 100%;
+}
+.stump-nav-btn {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+  padding: 9px 16px 9px 12px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--paper-2);
+  color: var(--ink); cursor: pointer; font-family: var(--sans);
+  transition: .2s; text-align: left;
+}
+.stump-nav-btn i { width: 10px; height: 26px; border-radius: 4px; flex: 0 0 10px; }
+.stump-nav-btn b { font-family: var(--serif); font-size: 15px; color: var(--red); }
+.stump-nav-btn span { font-size: 11.5px; color: var(--ink-soft); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.stump-nav-btn:hover, .stump-nav-btn:focus-visible {
+  background: var(--red); border-color: var(--red); outline: none;
+  box-shadow: 0 6px 18px rgba(140, 31, 40, .28);
+}
+.stump-nav-btn:hover b, .stump-nav-btn:hover span,
+.stump-nav-btn:focus-visible b, .stump-nav-btn:focus-visible span { color: #fff; }
 
 /* ------------------------------ 首页 3D 开场（枣树） ------------------------------ */
 .opening {
@@ -416,6 +521,40 @@ body.page-leaving { opacity: 0; }
 }
 .note h4 { margin: 0 0 6px; font-size: 16px; color: var(--red); }
 .note p { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+/* --------------- 首页 年轮 SVG（3D 树桩不可用时的回退，由 rings.js 渲染） --------------- */
+.ring-stage { position: relative; max-width: 560px; margin: 0 auto; }
+.ring-stage svg { width: 100%; height: auto; display: block; filter: drop-shadow(0 18px 40px rgba(60, 40, 20, .22)); }
+.ring-band { cursor: pointer; transition: opacity .25s, filter .25s; }
+.ring-band:hover { filter: brightness(1.12) saturate(1.25); }
+.ring-band.dim { opacity: .32; }
+.ring-hit { cursor: pointer; fill: none; }
+.ring-label-line { stroke: rgba(107, 74, 47, .55); stroke-width: 1; stroke-dasharray: 3 3; }
+.ring-label-line.hl { stroke: var(--red); stroke-width: 1.6; stroke-dasharray: none; }
+.ring-label-bg { fill: var(--paper-2); stroke: var(--line); }
+.ring-label-bg.hl { fill: var(--red); stroke: var(--red); }
+.ring-label-text { font-family: var(--serif); font-size: 15px; fill: var(--ink); pointer-events: none; }
+.ring-label-text.hl { fill: #fff; font-weight: 700; }
+.ring-year-text { font-size: 11px; fill: var(--ink-soft); pointer-events: none; }
+.ring-year-text.hl { fill: rgba(255, 255, 255, .85); }
+.ring-core-text { font-family: var(--kai); fill: var(--bark); font-size: 13px; letter-spacing: .1em; }
+.sprout { transform-origin: center; animation: sprout 3.2s ease-in-out infinite; }
+@keyframes sprout {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: .95; }
+  50% { transform: scale(1.14) rotate(-4deg); opacity: 1; }
+}
+.ring-tip {
+  position: absolute; pointer-events: none;
+  transform: translate(-50%, -130%);
+  background: var(--ink); color: var(--paper);
+  padding: 7px 12px; border-radius: 8px;
+  font-size: 13px; white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+  opacity: 0; transition: opacity .16s; z-index: 5;
+}
+.ring-tip.on { opacity: 1; }
+.ring-tip b { color: var(--gold-soft); font-family: var(--serif); letter-spacing: .06em; }
+.ring-tip span { display: block; font-size: 12px; opacity: .8; }
 
 /* --------------- 首页 年轮时间轴：2D 枣树生长带（清初幼苗 → 2024 大树） --------------- */
 .tree-strip { overflow-x: auto; padding: 6px 2px 4px; }
@@ -702,7 +841,6 @@ body.page-leaving { opacity: 0; }
 
 /* ------------------------------ 响应式 ------------------------------ */
 @media (max-width: 980px) {
-  .hero-grid { grid-template-columns: 1fr; gap: 22px; }
   .era-body { grid-template-columns: 1fr; }
   .era-progress { margin-left: 0; text-align: left; }
   .era-progress .bar { width: 100%; max-width: 260px; }
@@ -717,6 +855,16 @@ body.page-leaving { opacity: 0; }
   .opening-inner { transform: none; }
   .opening-title { letter-spacing: .12em; text-indent: .12em; }
   .opening-hint { bottom: 10px; font-size: 11px; }
+  /* 树桩圆盘：小屏下卡片更小、中心按钮收小 */
+  .stump-hero { padding: 30px 0 18px; }
+  .stump-heading h1 { font-size: 22px; }
+  .stump-wrap { width: 108vw; }
+  .stump-card { padding: 4px 8px; gap: 5px; max-width: 130px; }
+  .stump-card .sc-year { font-size: 12px; }
+  .stump-card .sc-title { display: none; }
+  .stump-play { width: 62px; height: 62px; font-size: 10px; }
+  .stump-play b { font-size: 14px; }
+  .stump-nav-btn span { display: none; }
 }
 
 @media print {

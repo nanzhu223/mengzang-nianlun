@@ -199,7 +199,7 @@
 
     // pos=标签锚点（世界坐标）；to/look=推进到位后的机位与注视点
     var HOTSPOTS = [
-      { key: 'ring', label: '进入年轮', href: '#ringEntry', solid: true,
+      { key: 'ring', label: '进入年轮', href: '#stumpEntry', solid: true,
         pos: [-2.6, 1.9, -4.2], to: [-2.6, 3.4, 5.0], look: [-2.6, 4.7, -4.2] },
       { key: 'people', label: '人物长廊', href: 'people.html',
         pos: [-9.3, 3.6, -2.4], to: [-5.0, 2.7, -0.6], look: [-11.0, 3.4, -2.4] },
