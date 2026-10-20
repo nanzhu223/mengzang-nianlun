@@ -17,6 +17,16 @@
 (function () {
   'use strict';
 
+  /* 固定随机种子：每次加载生成的树形完全一致，便于演示与录屏。
+     所有树体生成（含树皮/叶片纹理噪声）都用 rnd()，不用 Math.random()。 */
+  var _seed = 20261019;
+  function rnd() {
+    _seed |= 0; _seed = (_seed + 0x6D2B79F5) | 0;
+    var t = Math.imul(_seed ^ (_seed >>> 15), 1 | _seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
   var THREE = window.THREE;
   var section = document.getElementById('opening');
   var canvas = document.getElementById('treeCanvas');
@@ -114,12 +124,18 @@
     growBranch({
       start: new THREE.Vector3(0, 0, 0),
       dir: new THREE.Vector3(0.05, 1, 0.02).normalize(),
-      length: 3.7, radius: 0.62, depth: 0, store: store
+      length: 3.4, radius: 0.8, depth: 0, store: store
+    });
+    // 第二主枝：让树冠更高更饱满（老枣树常见双主干）
+    growBranch({
+      start: new THREE.Vector3(-0.1, 0.15, 0.05),
+      dir: new THREE.Vector3(-0.48, 1, -0.08).normalize(),
+      length: 3.1, radius: 0.48, depth: 1, store: store
     });
 
     var barkMat = new THREE.MeshStandardMaterial({
-      map: bark.color, bumpMap: bark.bump, bumpScale: 0.02,
-      color: 0xb39a79, roughness: 0.97, metalness: 0.0
+      map: bark.color, bumpMap: bark.bump, bumpScale: 0.09,
+      color: 0xd1c9ba, roughness: 0.97, metalness: 0.0
     });
     var barkMesh = new THREE.Mesh(mergeGeoms(store.bark), barkMat);
     barkMesh.castShadow = true;
@@ -142,6 +158,51 @@
     /* ---------------- 枣果 ---------------- */
     var fruits = buildFruits(store.tips);
     treeGroup.add(fruits);
+
+    /* ---------------- 板根：从树干延伸到地面（弯曲圆管） ---------------- */
+    for (var ri = 0; ri < 8; ri++) {
+      var ra = ri / 8 * Math.PI * 2, reach = 1.25 + rnd() * 0.6;
+      var rootCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(Math.cos(ra) * 0.35, 0.5, Math.sin(ra) * 0.35),
+        new THREE.Vector3(Math.cos(ra) * 0.8, 0.16, Math.sin(ra) * 0.8),
+        new THREE.Vector3(Math.cos(ra) * reach, -0.04, Math.sin(ra) * reach)
+      ]);
+      var rootMesh = new THREE.Mesh(
+        new THREE.TubeGeometry(rootCurve, 12, 0.12, 8, false), barkMat);
+      rootMesh.castShadow = true; rootMesh.receiveShadow = true;
+      treeGroup.add(rootMesh);
+    }
+
+    /* ---------------- 保护支撑杆（现场实拍可见的钢支撑） ---------------- */
+    var steelMat = new THREE.MeshStandardMaterial({
+      color: 0x667a78, roughness: 0.66, metalness: 0.3
+    });
+    function support(a, b) {
+      var d = new THREE.Vector3().subVectors(b, a);
+      var g = new THREE.CylinderGeometry(0.046, 0.046, d.length(), 10);
+      var m = new THREE.Mesh(g, steelMat);
+      m.position.copy(a).lerp(b, 0.5);
+      m.quaternion.setFromUnitVectors(UP, d.normalize());
+      m.castShadow = true; treeGroup.add(m);
+    }
+    [[[-0.4, 2.65, 0.35], [-2.1, 0.03, 1.9]], [[-0.4, 2.65, 0.35], [0.5, 0.03, 2.5]],
+     [[0.6, 3.1, -0.1], [2.4, 0.03, 1.4]], [[0.6, 3.1, -0.1], [1.6, 0.03, -1.9]]]
+      .forEach(function (pair) {
+        support(new THREE.Vector3().fromArray(pair[0]),
+          new THREE.Vector3().fromArray(pair[1]));
+      });
+
+    /* ---------------- 树池：草皮 + 石沿 ---------------- */
+    var bed = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.035, 4.4),
+      new THREE.MeshStandardMaterial({ color: 0x576045, roughness: 1 }));
+    bed.position.set(0, 0.025, 0); bed.receiveShadow = true; treeGroup.add(bed);
+    var edgingMat = new THREE.MeshStandardMaterial({ color: 0x9b9989, roughness: 0.96 });
+    [[4.9, 0.12, 0.13, 0, 2.2], [4.9, 0.12, 0.13, 0, -2.2],
+     [0.13, 0.12, 4.4, 2.4, 0], [0.13, 0.12, 4.4, -2.4, 0]]
+      .forEach(function (v) {
+        var m = new THREE.Mesh(new THREE.BoxGeometry(v[0], v[1], v[2]), edgingMat);
+        m.position.set(v[3], 0.06, v[4]); m.receiveShadow = true; treeGroup.add(m);
+      });
 
     scene.add(treeGroup);
 
@@ -384,17 +445,18 @@
     var start = o.start, dir = o.dir, length = o.length,
       radius = o.radius, depth = o.depth, store = o.store;
 
-    var sub = depth === 0 ? 4 : (depth === 1 ? 3 : 2);
+    var sub = depth === 0 ? 10 : (depth === 1 ? 5 : 2);
     var p = start.clone();
+    var pathPoints = [p.clone()];
     var d = dir.clone().normalize();
 
     // 每根枝的随机弯曲轴向
     var bendAxis = new THREE.Vector3(
-      Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5
+      rnd() - 0.5, rnd() - 0.5, rnd() - 0.5
     ).normalize();
     if (bendAxis.lengthSq() < 1e-6) bendAxis.set(1, 0, 0);
-    var bend = (depth === 0 ? 0.05 : 0.15) * (Math.random() * 0.8 + 0.4);
-    var endRadius = radius * (depth === 0 ? 0.6 : 0.72);
+    var bend = (depth === 0 ? 0.11 : 0.16) * (rnd() * 0.8 + 0.4);
+    var endRadius = radius * (depth === 0 ? 0.55 : 0.72);
     var isTwig = depth >= 3;
 
     for (var i = 0; i < sub; i++) {
@@ -404,9 +466,8 @@
 
       var segLen = length / sub;
       var p2 = p.clone().addScaledVector(d, segLen);
-      var ra = lerp(radius, endRadius, i / sub);
       var rb = lerp(radius, endRadius, (i + 1) / sub);
-      addSegment(p, p2, ra, rb, isTwig ? store.twig : store.bark, depth);
+      pathPoints.push(p2.clone());
 
       // 细枝中段也挂叶片锚点（让树冠更饱满）
       if (depth >= 4 && i === 0) {
@@ -415,6 +476,9 @@
       p = p2;
     }
 
+    addCurvedBranch(pathPoints, radius, endRadius,
+      isTwig ? store.twig : store.bark, depth);
+
     if (depth >= MAX_DEPTH) {
       store.tips.push({ pos: p.clone(), dir: d.clone(), r: endRadius });
       return;
@@ -422,46 +486,49 @@
 
     var n = CHILDREN[depth] || 2;
     for (var k = 0; k < n; k++) {
-      var azim = (k / n) * Math.PI * 2 + (Math.random() - 0.5) * 0.95 + depth * 0.75;
-      var tilt = THREE.MathUtils.degToRad(40 + Math.random() * 26 - depth * 3.5);
+      var azim = (k / n) * Math.PI * 2 + (rnd() - 0.5) * 0.95 + depth * 0.75;
+      var tilt = THREE.MathUtils.degToRad(46 + rnd() * 30 - depth * 3.5);
       var childDir = rotateAway(d, azim, tilt);
       growBranch({
-        start: p.clone().addScaledVector(d, -length * 0.07 * Math.random()),
+        start: p.clone().addScaledVector(d, -length * 0.07 * rnd()),
         dir: childDir,
-        length: length * (0.66 + Math.random() * 0.12),
-        radius: endRadius * (depth === 0 ? 0.7 : 0.74),
+        length: length * (0.66 + rnd() * 0.12),
+        radius: endRadius * (depth === 0 ? 0.62 : 0.74),
         depth: depth + 1,
         store: store
       });
     }
   }
 
-  // 生成一段「圆台」并按需写入合并缓冲
-  function addSegment(p1, p2, rBottom, rTop, list, depth) {
-    var dir = new THREE.Vector3().subVectors(p2, p1);
-    var len = dir.length();
-    if (len < 1e-4) return;
-
-    var radial = depth === 0 ? 12 : (depth <= 2 ? 8 : 5);
-    var geo = new THREE.CylinderGeometry(rTop, rBottom || rTop, len, radial, 1, true);
-
-    // 统一树皮纹理密度（避免短枝把纹理压扁）
-    var uv = geo.attributes.uv;
-    for (var i = 0; i < uv.count; i++) {
-      uv.setY(i, uv.getY(i) * Math.max(len * 0.85, 0.55));
+  // 连续渐细的枝干：共享纵向环与连续 UV，避免「一摞圆柱」的横向接缝
+  function addCurvedBranch(points, r0, r1, list, depth) {
+    var curve = new THREE.CatmullRomCurve3(points);
+    var segments = depth === 0 ? 36 : depth <= 2 ? 16 : 5;
+    var radial = depth === 0 ? 32 : depth <= 2 ? 14 : 6;
+    var frames = curve.computeFrenetFrames(segments, false);
+    var positions = [], uvs = [], indices = [], center = new THREE.Vector3();
+    for (var i = 0; i <= segments; i++) {
+      var t = i / segments, r = lerp(r0, r1, t);
+      curve.getPointAt(t, center);
+      for (var j = 0; j <= radial; j++) {
+        var a = j / radial * Math.PI * 2;
+        var f = depth <= 1
+          ? 1 + Math.sin(a * 9) * 0.065 + Math.sin(a * 17 + t * 3) * 0.025 : 1;
+        var v = center.clone().addScaledVector(frames.normals[i], Math.cos(a) * r * f)
+          .addScaledVector(frames.binormals[i], Math.sin(a) * r * f);
+        positions.push(v.x, v.y, v.z);
+        uvs.push(j / radial, t * curve.getLength() * 0.8);
+        if (i < segments && j < radial) {
+          var k = i * (radial + 1) + j, next = k + radial + 1;
+          indices.push(k, k + 1, next, next, k + 1, next + 1);
+        }
+      }
     }
-
-    var q = new THREE.Quaternion().setFromUnitVectors(
-      UP, dir.clone().normalize()
-    );
-    var m = new THREE.Matrix4().compose(
-      new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5),
-      q, ONE
-    );
-
-    var g = geo.toNonIndexed();
-    g.applyMatrix4(m);
-    list.push(g);
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    g.setIndex(indices); g.computeVertexNormals();
+    list.push(g.toNonIndexed()); g.dispose();
   }
 
   var UP = new THREE.Vector3(0, 1, 0);
@@ -513,10 +580,10 @@
 
     // 手机端降低叶片密度，保证流畅
     var small = (window.innerWidth || 999) < 700;
-    var perTip = small ? 7 : 12;
+    var perTip = small ? 10 : 18;
     var count = tips.length * perTip;
 
-    var geo = new THREE.PlaneGeometry(0.23, 0.4);
+    var geo = new THREE.PlaneGeometry(0.17, 0.24);
     var mat = new THREE.MeshStandardMaterial({
       map: tex, alphaTest: 0.42, side: THREE.DoubleSide,
       roughness: 0.5, metalness: 0.0, color: 0xffffff
@@ -530,33 +597,34 @@
     mesh.customDepthMaterial = new THREE.MeshDepthMaterial({
       depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.42
     });
+    applyWind(mesh.customDepthMaterial, wind, false);
 
     var m = new THREE.Matrix4();
     var q = new THREE.Quaternion();
     var s = new THREE.Vector3();
     var pos = new THREE.Vector3();
     var e = new THREE.Euler();
-    var jitter = 0.4;
+    var jitter = 0.52;
     var idx = 0;
 
     for (var i = 0; i < tips.length; i++) {
       var tip = tips[i];
       for (var k = 0; k < perTip; k++) {
         pos.copy(tip.pos)
-          .addScaledVector(tip.dir, 0.04 + Math.random() * 0.16)
+          .addScaledVector(tip.dir, 0.04 + rnd() * 0.16)
           .add(new THREE.Vector3(
-            (Math.random() - 0.5) * jitter,
-            (Math.random() - 0.5) * jitter,
-            (Math.random() - 0.5) * jitter
+            (rnd() - 0.5) * jitter,
+            (rnd() - 0.5) * jitter,
+            (rnd() - 0.5) * jitter
           ));
         // 叶片略向下垂
         e.set(
-          Math.PI * 0.5 + (Math.random() - 0.5) * 2.2,
-          Math.random() * Math.PI * 2,
-          (Math.random() - 0.5) * 1.2
+          Math.PI * 0.5 + (rnd() - 0.5) * 2.2,
+          rnd() * Math.PI * 2,
+          (rnd() - 0.5) * 1.2
         );
         q.setFromEuler(e);
-        var sc = 0.7 + Math.random() * 0.75;
+        var sc = 0.85 + rnd() * 0.8;
         s.set(sc, sc, sc);
         m.compose(pos, q, s);
         mesh.setMatrixAt(idx++, m);
@@ -570,7 +638,7 @@
   /* 枣果：少量点缀，实例颜色区分成熟度                                    */
   /* ================================================================== */
   function buildFruits(tips) {
-    var geo = new THREE.SphereGeometry(0.11, 12, 10);
+    var geo = new THREE.SphereGeometry(0.045, 12, 10);
     geo.scale(1, 1.18, 1);
     var mat = new THREE.MeshStandardMaterial({
       roughness: 0.34, metalness: 0.0, color: 0xffffff
@@ -595,22 +663,22 @@
       pos.copy(tip.pos)
         .addScaledVector(tip.dir, 0.05)
         .add(new THREE.Vector3(
-          (Math.random() - 0.5) * 0.34,
-          -0.12 - Math.random() * 0.22,
-          (Math.random() - 0.5) * 0.34
+          (rnd() - 0.5) * 0.34,
+          -0.12 - rnd() * 0.22,
+          (rnd() - 0.5) * 0.34
         ));
-      e.set(Math.random() * 3, Math.random() * 3, Math.random() * 3);
+      e.set(rnd() * 3, rnd() * 3, rnd() * 3);
       q.setFromEuler(e);
-      var sc = 0.8 + Math.random() * 0.55;
+      var sc = 0.8 + rnd() * 0.55;
       s.set(sc, sc, sc);
       m.compose(pos, q, s);
       mesh.setMatrixAt(i, m);
 
       // 成熟度：多数暗红，少量青枣
-      if (Math.random() < 0.74) {
-        col.setHSL(0.012 + Math.random() * 0.02, 0.62, 0.29 + Math.random() * 0.08);
+      if (rnd() < 0.74) {
+        col.setHSL(0.012 + rnd() * 0.02, 0.62, 0.29 + rnd() * 0.08);
       } else {
-        col.setHSL(0.2, 0.5, 0.42 + Math.random() * 0.1);
+        col.setHSL(0.2, 0.5, 0.42 + rnd() * 0.1);
       }
       mesh.setColorAt(i, col);
     }
@@ -623,7 +691,7 @@
   /* 风动：顶点着色器注入                                                 */
   /* ================================================================== */
   function applyWind(mat, wind, isTwig) {
-    var amp = isTwig ? 0.016 : 0.05;
+    var amp = isTwig ? 0.008 : 0.024;
     mat.onBeforeCompile = function (shader) {
       shader.uniforms.uWindTime = wind;
       shader.vertexShader = 'uniform float uWindTime;\n' + shader.vertexShader;
@@ -1504,7 +1572,7 @@
 
   function shuffle(arr) {
     for (var i = arr.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
+      var j = Math.floor(rnd() * (i + 1));
       var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
     }
     return arr;
