@@ -212,6 +212,18 @@
     tip.className = 'stump-3d-tip';
     stage.appendChild(tip);
 
+    /* 年轮指示线 + 年份标签的浮层（覆盖在画布上，坐标由 3D 投影逐帧更新） */
+    var labelWrap = document.createElement('div');
+    labelWrap.className = 'stump-labels';
+    stage.appendChild(labelWrap);
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var leaderSvg = document.createElementNS(svgNS, 'svg');
+    leaderSvg.setAttribute('class', 'stump-leaders');
+    leaderSvg.setAttribute('aria-hidden', 'true');
+    labelWrap.appendChild(leaderSvg);
+    var ringLabels = [];
+    var canvasW = 0, canvasH = 0;
+
     var renderer = new THREE.WebGLRenderer({
       canvas: canvas, antialias: true, alpha: true,
       powerPreference: 'high-performance'
@@ -375,29 +387,93 @@
     ground.position.y = -0.004;
     scene.add(ground);
 
+    /* ---------------- 每圈年轮一根指示线 + 年份标签 ---------------- */
+    /* 标签用 HTML（文字清晰、可点），指示线用 SVG；
+       两者的坐标每帧由 3D 投影算出来，所以拖动转动树桩时会跟着走。 */
+    for (var li = 0; li < n; li++) {
+      (function (idx) {
+        var halo = document.createElementNS(svgNS, 'polyline');
+        halo.setAttribute('class', 'stump-leader-halo');
+        leaderSvg.appendChild(halo);
+
+        var line = document.createElementNS(svgNS, 'polyline');
+        line.setAttribute('class', 'stump-leader');
+        leaderSvg.appendChild(line);
+
+        var dot = document.createElementNS(svgNS, 'circle');
+        dot.setAttribute('class', 'stump-leader-dot');
+        dot.setAttribute('r', '2.6');
+        leaderSvg.appendChild(dot);
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'stump-label';
+        btn.textContent = eras[idx].year;
+        btn.setAttribute('title', eras[idx].year + '　' + eras[idx].title);
+        btn.setAttribute('aria-label',
+          eras[idx].year + '　' + eras[idx].title + '：进入这一年的故事');
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          go(eras[idx]);
+        });
+        btn.addEventListener('pointerenter', function () { setHover(idx); });
+        btn.addEventListener('pointerleave', function () { setHover(-1); });
+        labelWrap.appendChild(btn);
+
+        ringLabels.push({
+          i: idx,
+          el: btn,
+          line: line,
+          halo: halo,
+          dot: dot,
+          // 每圈取一个固定方位角，11 圈均匀散开，转动时跟着木头一起转
+          ang: -Math.PI / 2 + (idx / n) * Math.PI * 2 + 0.28,
+          rMid: CORE_R + (RING_OUT - CORE_R) * ((idx + 0.5) / n)
+        });
+      })(li);
+    }
+
     /* ---------------- 相机控制 ---------------- */
     var ctrl = createControls(canvas, reduceMotion);
 
-    // 视线焦点落在桩身中上部，切面与板根都能进画面
+    // 视线焦点放在桩身中下部：在画布里把树桩整体往上抬，板根不会被切出画外
     // （必须在 resize() 之前设置，resize 会据此计算取景距离）
-    focus.set(0, H * 0.46, 0);
+    focus.set(0, H * 0.10, 0);
 
     function resize() {
       var w = stage.clientWidth || 560;
       var wrap = stage.parentNode;
-      // 让树桩铺满 .stump-wrap 的高度（上限 900，避免超大屏拉太长）
       var wrapH = wrap && wrap.clientHeight ? wrap.clientHeight : 0;
-      // 正方形容器：树桩是圆形，方形容器能把它撑到最大、左右不留大片空白
-      var side = Math.max(320, Math.min(900, Math.min(w, wrapH || w)));
-      var h = side;
-      w = Math.min(w, side);
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-      renderer.setSize(w, h, false);
-      camera.aspect = w / h;
-      // 依据纵横比让「树干 + 树桩 + 根系」整体完整入画
-      var fit = SCENE_R / Math.tan(camera.fov * Math.PI / 360);
-      ctrl.baseDist = fit / Math.min(1, camera.aspect) * 0.92;
+      // 画布取「横向长一点」的矩形：树桩是扁宽的，方画布上下会浪费一大截
+      var cw = Math.min(w, 1020);
+      var ch = Math.round(cw * 0.70);
+      if (wrapH && ch > wrapH) {
+        ch = Math.round(wrapH);
+        cw = Math.round(ch / 0.70);
+      }
+      cw = Math.max(320, Math.min(cw, w));
+      canvas.style.width = cw + 'px';
+      canvas.style.height = ch + 'px';
+      canvasW = cw; canvasH = ch;
+      // 浮层与画布严格对齐（画布在 stage 里水平居中）
+      labelWrap.style.left = Math.round((w - cw) / 2) + 'px';
+      labelWrap.style.top = '0px';
+      labelWrap.style.width = cw + 'px';
+      labelWrap.style.height = ch + 'px';
+      // 先把标签量一遍尺寸（此时浮层还可见），再做窄屏隐藏判断
+      for (var q = 0; q < ringLabels.length; q++) {
+        ringLabels[q].w = ringLabels[q].el.offsetWidth || 46;
+        ringLabels[q].h = ringLabels[q].el.offsetHeight || 22;
+      }
+      labelWrap.classList.toggle('stump-labels-off', cw < 620 || !ringLabels.length);
+      renderer.setSize(cw, ch, false);
+      camera.aspect = cw / ch;
+      // 取景：按树桩实际的横向/纵向半尺寸算距离，横竖都不要出画
+      var tanV = Math.tan(camera.fov * Math.PI / 360);
+      var halfW = SCENE_R * 0.85, halfH = SCENE_R * 0.60;
+      var dW = halfW / (0.89 * tanV * camera.aspect);
+      var dH = halfH / (0.96 * tanV);
+      ctrl.baseDist = Math.max(dW, dH);
       camera.updateProjectionMatrix();
     }
     if ('ResizeObserver' in window) {
@@ -433,6 +509,11 @@
         m.material.opacity = (i >= 0 && !on) ? 0.45 : 1;
         m.material.transparent = (i >= 0 && !on);
       }
+      for (var q = 0; q < ringLabels.length; q++) {
+        var onq = (ringLabels[q].i === i);
+        ringLabels[q].el.classList.toggle('on', onq);
+        ringLabels[q].line.classList.toggle('on', onq);
+      }
     }
 
     function showTip(i, e) {
@@ -465,6 +546,137 @@
       if (i >= 0) go(eras[i]);
     });
 
+    /* ---------------- 指示线 / 年份标签：逐帧按 3D 投影更新 ---------------- */
+    var _pv = new THREE.Vector3();
+    function screenOf(x, y, z) {
+      _pv.set(x, y, z);
+      root.localToWorld(_pv);
+      _pv.project(camera);
+      return { x: (_pv.x * 0.5 + 0.5) * canvasW, y: (-_pv.y * 0.5 + 0.5) * canvasH };
+    }
+
+    var labelsOn = false;
+    function updateLabels() {
+      if (!ringLabels.length || !canvasW) return;
+      var on = canvasW >= 620;
+      if (on !== labelsOn) {
+        labelsOn = on;
+        labelWrap.classList.toggle('stump-labels-off', !on);
+      }
+      if (!on) return;
+      labelWrap.classList.add('stump-labels-in');
+
+      var W = canvasW, H = canvasH;
+
+      // 切面外缘在屏幕上的包围盒 → 当作标注椭圆（轴对齐，排版用）
+      var minX = 1e9, maxX = -1e9, minY = 1e9, maxY = -1e9;
+      for (var k = 0; k < 24; k++) {
+        var a = (k / 24) * Math.PI * 2;
+        var p = screenOf(Math.cos(a) * RING_OUT, TOP_Y, Math.sin(a) * RING_OUT);
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+      var rx = Math.max(40, (maxX - minX) / 2), ry = Math.max(24, (maxY - minY) / 2);
+
+      // 切面本身贴着画面上沿，标注环整体下移一点，顶部才不至于被裁掉
+      var shiftY = Math.min(90, Math.max(0, 48 - (cy - (ry + 52))));
+      cy += shiftY;
+
+      // 1) 每圈在年轮上的落点 + 投影方位角
+      var items = [];
+      for (var j = 0; j < ringLabels.length; j++) {
+        var L = ringLabels[j];
+        var A = screenOf(Math.cos(L.ang) * L.rMid, TOP_Y + relief(L.rMid), Math.sin(L.ang) * L.rMid);
+        var th = Math.atan2((A.y - cy) / ry, (A.x - cx) / rx);
+        items.push({ L: L, ax: A.x, ay: A.y, th: th, w: L.w || 48, h: L.h || 22 });
+      }
+
+      // 2) 标注环：比切面外扩一圈，沿「弧长」均分标签。
+      //    切面是压扁的椭圆，按角度均分会让上下两端挤成一疙瘩，按弧长才匀。
+      var Rx = rx + 58, Ry = ry + 52;
+      var SEG = 240, sx = [], sy = [], cum = [0];
+      for (var s1 = 0; s1 <= SEG; s1++) {
+        var t1 = (s1 / SEG) * Math.PI * 2;
+        var qx = cx + Math.cos(t1) * Rx, qy = cy + Math.sin(t1) * Ry;
+        sx.push(qx); sy.push(qy);
+        if (s1) {
+          var ddx = qx - sx[s1 - 1], ddy = qy - sy[s1 - 1];
+          cum.push(cum[s1 - 1] + Math.sqrt(ddx * ddx + ddy * ddy));
+        }
+      }
+      var Ltotal = cum[SEG];
+
+      // 各圈在标注环上的理想弧长位置
+      for (j = 0; j < items.length; j++) {
+        var tt = items[j].th; if (tt < 0) tt += Math.PI * 2;
+        var f = (tt / (Math.PI * 2)) * SEG;
+        var i0 = Math.min(SEG - 1, Math.floor(f)), fr = f - i0;
+        items[j].s = cum[i0] + (cum[i0 + 1] - cum[i0]) * fr;
+      }
+      items.sort(function (p1, q1) { return p1.s - q1.s; });
+
+      // 3) 环形松弛：相邻标签沿弧长保持间距，避免叠在一起（顺序不变 → 线不乱穿）
+      var n2 = items.length;
+      var gap = 62;
+      for (var it2 = 0; it2 < 80; it2++) {
+        var moved = 0;
+        for (var k2 = 0; k2 < n2; k2++) {
+          var nxt = (k2 + 1 < n2) ? items[k2 + 1].s : items[0].s + Ltotal;
+          var d2 = nxt - items[k2].s;
+          if (d2 < gap) {
+            var push = (gap - d2) / 2;
+            items[k2].s -= push;
+            if (k2 + 1 < n2) items[k2 + 1].s += push; else items[0].s += push;
+            moved += push;
+          }
+        }
+        if (moved < 0.02) break;
+      }
+
+      // 弧长 → 椭圆上的点
+      function posOfArc(sArc) {
+        sArc = ((sArc % Ltotal) + Ltotal) % Ltotal;
+        var lo = 0, hi = SEG;
+        while (lo + 1 < hi) {
+          var mid = (lo + hi) >> 1;
+          if (cum[mid] <= sArc) lo = mid; else hi = mid;
+        }
+        var seg = (cum[hi] - cum[lo]) || 1;
+        var fr2 = (sArc - cum[lo]) / seg;
+        return { x: sx[lo] + (sx[hi] - sx[lo]) * fr2, y: sy[lo] + (sy[hi] - sy[lo]) * fr2 };
+      }
+
+      // 4) 落位 + 画指示线
+      for (var m3 = 0; m3 < items.length; m3++) {
+        var it = items[m3], Lb = it.L;
+        var p2 = posOfArc(it.s);
+        it.x = clamp(p2.x, 6 + it.w / 2, W - 6 - it.w / 2);
+        it.y = clamp(p2.y, 6 + it.h / 2, H - 6 - it.h / 2);
+
+        Lb.el.style.transform =
+          'translate(' + it.x.toFixed(1) + 'px,' + it.y.toFixed(1) + 'px) translate(-50%,-50%)';
+
+        // 线段终点：标签朝树心一侧的边框上
+        var dx = cx - it.x, dy = cy - it.y;
+        var tEdge = Math.min(
+          Math.abs(dx) > 0.01 ? (it.w / 2 + 4) / Math.abs(dx) : 1e9,
+          Math.abs(dy) > 0.01 ? (it.h / 2 + 4) / Math.abs(dy) : 1e9
+        );
+        var ex = it.x + dx * tEdge, ey = it.y + dy * tEdge;
+
+        var pts = it.ax.toFixed(1) + ',' + it.ay.toFixed(1) + ' ' +
+                  ex.toFixed(1) + ',' + ey.toFixed(1);
+        Lb.line.setAttribute('points', pts);
+        Lb.halo.setAttribute('points', pts);
+        Lb.line.setAttribute('class', 'stump-leader' + (hover === Lb.i ? ' on' : ''));
+        Lb.dot.setAttribute('cx', it.ax.toFixed(1));
+        Lb.dot.setAttribute('cy', it.ay.toFixed(1));
+      }
+    }
+
     /* ---------------- 渲染循环 ---------------- */
     var clock = new THREE.Clock();
     var intro = reduceMotion ? 1 : 0;      // 生长/入镜进度
@@ -480,6 +692,7 @@
       ctrl.apply(camera, focus);
       camera.updateMatrixWorld();
       renderer.render(scene, camera);
+      updateLabels();
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);
@@ -500,7 +713,16 @@
       rings: ringMeshes.length,
       get hover() { return hover; },
       setHover: setHover,
-      goIndex: function (i) { if (eras[i]) go(eras[i]); }
+      goIndex: function (i) { if (eras[i]) go(eras[i]); },
+      labels: function () { return ringLabels; },
+      // 手动推一帧（后台标签 rAF 会暂停，自动化检查时用）
+      tick: function (dt) {
+        ctrl.update(dt || 0.016);
+        ctrl.apply(camera, focus);
+        camera.updateMatrixWorld();
+        renderer.render(scene, camera);
+        updateLabels();
+      }
     };
   }
 

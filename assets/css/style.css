@@ -144,7 +144,7 @@ h3 { font-size: 19px; }
 .stump-wrap {
   position: relative;
   width: min(1080px, 94vw);
-  min-height: min(78vh, 1080px);
+  min-height: min(88vh, 1080px);
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -175,7 +175,63 @@ h3 { font-size: 19px; }
 }
 .stump-3d-tip.on { opacity: 1; }
 .stump-3d-tip b { color: var(--gold-soft); font-family: var(--serif); letter-spacing: .06em; }
-.stump-3d-tip span { display: block; font-size: 12px; opacity: .82; margin-top: 2px; }
+.stump-3d-tip span { display: block; font-size: 12px; opacity: .92; margin-top: 2px; }
+
+/* ---------- 年轮指示线 + 年份标签（浮在 3D 画布上） ---------- */
+.stump-labels {
+  position: absolute; left: 0; top: 0;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 4;
+}
+.stump-labels-in { opacity: 1; transition: opacity .5s ease .4s; }
+.stump-labels-off { display: none; }
+.stump-leaders {
+  position: absolute; left: 0; top: 0;
+  width: 100%; height: 100%;
+  overflow: visible;
+}
+.stump-leader {
+  fill: none;
+  stroke: rgba(58, 38, 22, .62);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.stump-leader-halo {
+  fill: none;
+  stroke: rgba(251, 247, 238, .9);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.stump-leader-dot { fill: rgba(58, 38, 22, .66); }
+.stump-label {
+  position: absolute; left: 0; top: 0;
+  padding: 2px 8px;
+  border: 1px solid rgba(140, 31, 40, .26);
+  border-radius: 999px;
+  background: rgba(251, 247, 238, .94);
+  color: var(--ink-soft);
+  font-family: var(--sans, inherit);
+  font-size: 11.5px; line-height: 1.25;
+  letter-spacing: .02em; white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(43, 33, 24, .1);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background .16s, color .16s, border-color .16s, box-shadow .16s;
+}
+.stump-label:hover,
+.stump-label.on,
+.stump-label:focus-visible {
+  background: var(--red);
+  border-color: var(--red);
+  color: var(--paper-2);
+  outline: none;
+  box-shadow: 0 4px 14px rgba(140, 31, 40, .28);
+}
+.stump-leader.on { stroke: rgba(140, 31, 40, .8); stroke-width: 1.4; }
+.stump-fallback .stump-labels { display: none; }
 /* 3D 就绪时隐藏 SVG 回退层的提示与标签 */
 .stump3d-ready .stump-cards,
 .stump3d-ready .stump-tip { display: none; }
