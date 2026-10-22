@@ -27,7 +27,7 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; background-color: var(--paper); }
 
 body {
   margin: 0;
@@ -553,6 +553,26 @@ body.page-leaving { opacity: 0; }
 .fade-in body { animation: pageIn .55s ease both; }
 @media (prefers-reduced-motion: reduce) {
   .fade-in body { animation: none; }
+}
+
+/* 点击年轮后：镜头推近该圈 → 整页淡成纸色 → 跳转（stump3d.js 控制） */
+.stump-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .42s ease;
+  background:
+    radial-gradient(58% 46% at 50% 42%, rgba(201, 162, 106, .20), transparent 72%),
+    var(--paper);
+}
+.stump-fade.on { opacity: 1; pointer-events: auto; }
+/* 推近时把年份标签与指示线收掉，免得甩到画面边缘 */
+.stump-flying .stump-labels { opacity: 0; transition: opacity .3s ease; }
+.stump-flying canvas { cursor: default; }
+@media (prefers-reduced-motion: reduce) {
+  .stump-fade { transition: none; }
 }
 
 /* 竖屏：开场文字改置顶，把下方画面让给热点标签，避免标签压住标题 */

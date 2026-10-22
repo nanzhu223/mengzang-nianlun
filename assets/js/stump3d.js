@@ -414,7 +414,7 @@
           eras[idx].year + '　' + eras[idx].title + '：进入这一年的故事');
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
-          go(eras[idx]);
+          go(eras[idx], idx);
         });
         btn.addEventListener('pointerenter', function () { setHover(idx); });
         btn.addEventListener('pointerleave', function () { setHover(-1); });
@@ -528,7 +528,69 @@
     }
     function hideTip() { tip.classList.remove('on'); }
 
-    function go(era) { location.href = 'era.html?era=' + era.id; }
+    /* ---------------- 点击年轮：先推近这一圈，再淡出换页 ---------------- */
+    var flying = false;
+
+    function easeInOutCubic(x) {
+      return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    }
+
+    // 整页纸色遮罩：铺满视口，换页前把画面淡掉
+    function fadeLayer() {
+      var el = document.getElementById('stumpFade');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'stumpFade';
+        el.className = 'stump-fade';
+        el.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(el);
+      }
+      return el;
+    }
+
+    function flyToRing(idx, done) {
+      var L = ringLabels[idx];
+      if (!L) { if (done) done(); return; }
+      // 目标点 = 这一圈年轮在切面上的落点（和指示线起点同一个点）
+      var to = new THREE.Vector3(
+        Math.cos(L.ang) * L.rMid,
+        TOP_Y + relief(L.rMid),
+        Math.sin(L.ang) * L.rMid
+      );
+      root.localToWorld(to);
+      var from = focus.clone();
+      var d0 = ctrl.baseDist;
+      var d1 = Math.max(1.0, d0 * 0.28);       // 收到很近：这一圈年轮在画面中间占一大块
+      var dur = 900;
+      flying = true;
+      stage.classList.add('stump-flying');
+      canvas.style.pointerEvents = 'none';
+      hideTip();
+      setHover(idx);                            // 选中的那圈保持高亮
+      var t0 = performance.now();
+      (function step(now) {
+        var k = Math.min(1, (now - t0) / dur);
+        var e = easeInOutCubic(k);
+        focus.copy(from).lerp(to, e);
+        ctrl.baseDist = d0 + (d1 - d0) * e;
+        if (k < 1) requestAnimationFrame(step);
+        else if (done) done();
+      })(t0);
+    }
+
+    function go(era, idx) {
+      var url = 'era.html?era=' + era.id;
+      if (flying) return;
+      // 减少动态效果 / 没有对应年轮（如年轮序号异常）时直接跳转
+      if (reduceMotion || typeof idx !== 'number' || idx < 0) { location.href = url; return; }
+      flyToRing(idx, function () {
+        try { sessionStorage.setItem('nav3d', '1'); } catch (err) { }
+        var ov = fadeLayer();
+        void ov.offsetWidth;                    // 先落到初始态，过渡才会生效
+        ov.classList.add('on');
+        setTimeout(function () { location.href = url; }, 430);
+      });
+    }
 
     canvas.addEventListener('pointermove', function (e) {
       if (ctrl.dragging()) { hideTip(); return; }
@@ -543,7 +605,7 @@
     canvas.addEventListener('click', function (e) {
       if (ctrl.moved()) return;
       var i = pick(e.clientX, e.clientY);
-      if (i >= 0) go(eras[i]);
+      if (i >= 0) go(eras[i], i);
     });
 
     /* ---------------- 指示线 / 年份标签：逐帧按 3D 投影更新 ---------------- */
@@ -713,7 +775,7 @@
       rings: ringMeshes.length,
       get hover() { return hover; },
       setHover: setHover,
-      goIndex: function (i) { if (eras[i]) go(eras[i]); },
+      goIndex: function (i) { if (eras[i]) go(eras[i], i); },
       labels: function () { return ringLabels; },
       // 手动推一帧（后台标签 rAF 会暂停，自动化检查时用）
       tick: function (dt) {
