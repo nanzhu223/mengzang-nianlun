@@ -50,7 +50,7 @@
     const trunkW = 0.02 + 0.12 * t;
     const spread = 0.34 + 0.22 * t;
     const lenF = 0.68 + 0.05 * t;
-    const leafCount = 2 + Math.round(9 * t);
+    const leafCount = 2 + Math.round(6 * t);
 
     function tips(x, y, len) {
       const cl = len * 1.1 + 0.05;
@@ -64,14 +64,14 @@
           c: LEAF[(rnd() * LEAF.length) | 0]
         });
       }
-      if (t > 0.34 && rnd() < 0.2 + 0.6 * t) {
-        const nf = 1 + Math.round(rnd() * 3 * t);
+      if (t > 0.34 && rnd() < 0.05 + 0.16 * t) {
+        const nf = 1 + Math.round(1.2 * t);
         for (let k = 0; k < nf; k++) {
           const a = rnd() * Math.PI * 2;
           const d = Math.pow(rnd(), 0.6) * cl * 1.15;
           fruits.push({
             x: x + Math.cos(a) * d, y: y + Math.sin(a) * d * 0.82,
-            r: 0.03 + 0.03 * t,
+            r: 0.026 + 0.02 * t,
             c: FRUIT[(rnd() * FRUIT.length) | 0]
           });
         }
@@ -87,10 +87,10 @@
       let na0 = ang + (rnd() - 0.5) * 0.18;
       na0 += (-Math.PI / 2 - na0) * 0.22;
       rec(ex, ey, na0, len * lenF * (0.92 + rnd() * 0.16), w * 0.7, d - 1);
-      // 侧枝：向两侧斜出，构成树冠
-      const sides = d >= 3 ? 1 : 2;
-      for (let k = 0; k < sides; k++) {
-        const sgn = k % 2 === 0 ? -1 : 1;
+      // 侧枝：左右各出一枝，树冠才是对称的（原来高树只在单侧分叉，
+      // 一株树只有半拉树冠）
+      for (let k = 0; k < 2; k++) {
+        const sgn = k === 0 ? -1 : 1;
         let na = ang + sgn * spread * (0.72 + rnd() * 0.5) + (rnd() - 0.5) * 0.14;
         na += (-Math.PI / 2 - na) * 0.1;
         rec(ex, ey, na, len * lenF * (0.58 + rnd() * 0.16), w * 0.55, d - 1);
@@ -110,8 +110,10 @@
       minX = Math.min(minX, l.x - l.r); maxX = Math.max(maxX, l.x + l.r);
       minY = Math.min(minY, l.y - l.r); maxY = Math.max(maxY, l.y + l.r);
     });
-    if (leaves.length > 900) {                        // 性能兜底
-      leaves = leaves.filter(function (_, k) { return k % 2 === 0; });
+    if (leaves.length > Math.round(230 + 170 * t)) {  // 性能兜底：左右分枝后叶量翻倍，按比例抽稀
+      const cap = Math.round(230 + 170 * t);
+      const step = Math.ceil(leaves.length / cap);
+      leaves = leaves.filter(function (_, k) { return k % step === 0; });
     }
     return { segs: segs, leaves: leaves, fruits: fruits, minX: minX, maxX: maxX, minY: minY, maxY: maxY };
   }
