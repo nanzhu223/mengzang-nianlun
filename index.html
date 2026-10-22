@@ -6,26 +6,77 @@
 <title>触摸年轮 · 蒙藏学校旧址中华民族共同体数字记忆</title>
 <meta name="description" content="以蒙藏学校旧址西院近400年古枣树的年轮为时间轴，讲述马克思主义在少数民族中传播、第一个少数民族党支部诞生的历史记忆。">
 <link rel="stylesheet" href="assets/css/style.css?v=16">
+<link rel="stylesheet" href="assets/css/courtyard.css?v=2">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 </head>
 <body>
 
 <header id="topbar" class="topbar"></header>
 
-<!-- ============================ 开场：3D 枣树 ============================ -->
-<section class="opening" id="opening" aria-label="开场：一棵近 400 年的大枣树">
-  <canvas id="treeCanvas"></canvas>
+<!-- ============================ 开场：3D 庭院 + 枣树 ============================ -->
+<section class="opening courtyard-opening" id="opening" aria-label="探索古枣树庭院">
+  <canvas id="treeCanvas" tabindex="0" aria-label="3D庭院，拖动环顾；进入后用WASD或方向键移动，Esc返回全景"></canvas>
+  <div class="scene-topline"><span>蒙藏学校旧址 · 西院</span><span id="sceneLocation" role="status">庭院全景</span></div>
   <div class="opening-inner">
+    <svg class="cover-ornament" viewBox="0 0 120 120" aria-hidden="true">
+      <defs>
+        <radialGradient id="pomeGrad" cx="36%" cy="30%">
+          <stop offset="0" stop-color="#f0c464"/>
+          <stop offset="0.55" stop-color="#c94a3a"/>
+          <stop offset="1" stop-color="#7d241f"/>
+        </radialGradient>
+      </defs>
+      <g fill="none" stroke="#e8b54d" stroke-opacity=".38" stroke-width="1">
+        <circle cx="60" cy="62" r="50"/>
+        <circle cx="60" cy="62" r="38"/>
+        <circle cx="60" cy="62" r="26"/>
+      </g>
+      <path d="M60 30c-15 0-27 12-27 27s12 27 27 27 27-12 27-27-12-27-27-27z" fill="url(#pomeGrad)"/>
+      <path d="M52 27l8-9 8 9" fill="none" stroke="#e8b54d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <g fill="#f4e2b0" fill-opacity=".9">
+        <circle cx="53" cy="56" r="3.1"/><circle cx="61" cy="52" r="3.1"/><circle cx="69" cy="56" r="3.1"/>
+        <circle cx="57" cy="65" r="3.1"/><circle cx="65" cy="65" r="3.1"/>
+      </g>
+    </svg>
     <span class="eyebrow">红色之旅 · 追梦铸魂</span>
-    <h1 class="opening-title">触摸年轮</h1>
+    <h1 class="opening-title">触摸<span>年轮</span></h1>
     <p class="opening-sub">蒙藏学校旧址 · 中华民族共同体数字记忆</p>
     <p class="opening-poem">西院一进与二进之间，有一棵近 400 年的大枣树，始植于清初。<br>李大钊、邓中夏、赵世炎曾在树下，与蒙古族青年学生交谈。</p>
     <div class="opening-actions">
-      <a class="btn solid" href="#stumpEntry">进入年轮 →</a>
-      <a class="btn" href="era.html?era=y1923">直达 1923 年冬夜</a>
+      <button class="btn solid" type="button" data-view="entry" id="sceneEnter">进入庭院</button>
+      <a class="btn" href="#stumpEntry">进入年轮</a>
     </div>
   </div>
-  <div class="opening-hint">向下滚动<i></i></div>
+
+  <button class="tree-hotspot" id="treeHotspot" type="button" hidden><span class="hotspot-mark"></span>古枣树 · 点击提问</button>
+
+  <div class="scene-tools" aria-label="庭院操作">
+    <div class="scene-views" role="group" aria-label="观察位置">
+      <button type="button" data-view="overview" aria-pressed="true">庭院全景</button>
+      <button type="button" data-view="treeBase" aria-pressed="false">枣树下</button>
+      <button type="button" data-view="treeDetail" aria-pressed="false">树皮近景</button>
+      <button type="button" data-view="gate" aria-pressed="false">垂花门前</button>
+    </div>
+    <div class="scene-secondary">
+      <button type="button" id="sceneMotion" aria-pressed="true">暂停风动</button>
+      <button type="button" id="sceneAsk">问枣树 · 讲解这棵树</button>
+    </div>
+  </div>
+
+  <button type="button" class="scene-exit" data-view="overview" aria-label="退出庭院，回到全景">← 退出庭院</button>
+
+  <div class="scene-walk" role="group" aria-label="移动方向">
+    <button type="button" data-move="forward" aria-label="向前移动"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg></button>
+    <button type="button" data-move="left" aria-label="向左移动"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+    <button type="button" data-move="back" aria-label="向后移动"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg></button>
+    <button type="button" data-move="right" aria-label="向右移动"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+  </div>
+
+  <div class="scene-caption">
+    <p class="scene-help">拖动环顾 · 点击树干提问<span> · WASD / 方向键移动 · Esc 返回全景</span></p>
+    <p class="scene-note">庭院为程序化重建的艺术化示意，非测绘复原</p>
+  </div>
+  <p class="scene-fallback">当前设备未能显示 3D 庭院，可继续浏览历史年代，或点击“问枣树”了解旧址。</p>
 </section>
 
 <!-- ============================ 主视觉：巨型树桩年轮圆盘 ============================ -->
@@ -131,8 +182,11 @@
 <footer id="footer"></footer>
 
 <script src="assets/vendor/three/three.global.js"></script>
-<script src="assets/js/tree3d.js?v=10"></script>
 <script src="assets/js/data.js"></script>
+<script src="assets/js/courtyard-detail.js?v=1"></script>
+<script src="assets/js/courtyard-atmosphere.js?v=1"></script>
+<script src="assets/js/courtyard-walk.js?v=1"></script>
+<script src="assets/js/tree3d.js?v=11"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/agent-config.js"></script>
 <script src="assets/js/agent.js"></script>

@@ -387,11 +387,24 @@
 
     // 首次打开时的问候
     let greeted = false;
-    fab.addEventListener('click', function () {
+    function greet() {
       if (greeted) return;
       greeted = true;
       bubble('tree', esc(A.greeting));
-    });
+    }
+    fab.addEventListener('click', greet);
+
+    // 供 3D 场景等处直接唤起对话（openWith('问题') 会打开面板并提问）
+    function openPanel() {
+      panel.classList.add('on');
+      fab.style.display = 'none';
+      greet();
+    }
+    function openWith(q) {
+      openPanel();
+      if (q) send(q); else input.focus();
+    }
+    window.NIANLUN_AGENT = Object.assign(window.NIANLUN_AGENT || {}, { openWith: openWith });
   }
 
   window.NIANLUN_AGENT = { ask: ask, retrieve: retrieve, localAnswer: localAnswer };
