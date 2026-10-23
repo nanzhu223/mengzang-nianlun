@@ -43,6 +43,21 @@
     fig.innerHTML = U.makeScene(era) +
       '<figcaption><b>' + esc(era.scene.caption) + '</b>' + esc(era.scene.source) + '</figcaption>';
 
+    /* ---------------- 旧址影像（真实照片） ---------------- */
+    const photoBox = document.getElementById('eraPhoto');
+    if (photoBox) {
+      if (era.photo) {
+        photoBox.innerHTML =
+          '<img src="' + era.photo + '" alt="' + esc(era.year + '　' + era.title) + '：旧址影像" loading="lazy">' +
+          '<figcaption><b>' + esc(era.photoCap || (era.year + '　' + era.title)) + '</b>' +
+          (era.photoSrc ? '来源：' + esc(era.photoSrc) : '') + '</figcaption>';
+        photoBox.hidden = false;
+      } else {
+        photoBox.hidden = true;
+        photoBox.innerHTML = '';
+      }
+    }
+
     /* ---------------- 枣树独白 ---------------- */
     const mono = document.getElementById('eraMonologue');
     mono.innerHTML =
