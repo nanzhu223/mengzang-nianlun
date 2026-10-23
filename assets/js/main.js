@@ -72,6 +72,7 @@
         '<div style="margin-top:6px">赛道：指定命题“红色之旅 追梦铸魂”作品赛项　|　作品组成：网站（主体）＋智能体“问枣树”（创新点）＋演示视频＋作品说明</div>' +
         '<div style="margin-top:6px">史料来源：' + S.SOURCES.map(function (s) { return esc(s.name); }).join('、') + '</div>' +
         '<div class="footer-disclaimer">' + esc(S.META.disclaimer) + '</div>' +
+        '<div class="footer-declaration">本作品所涉历史名称及机构沿革均依据官方史料客观陈述，不代表参赛团队所属单位。</div>' +
       '</div>';
   }
 
