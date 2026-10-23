@@ -309,7 +309,7 @@
 
     const fab = document.createElement('button');
     fab.className = 'agent-fab';
-    fab.innerHTML = '<span class="dot"></span><span>问枣树</span>';
+    fab.innerHTML = '<img class="agent-avatar" src="assets/img/agent/wenzaoshu.jpg" alt="" aria-hidden="true"><span>问枣树</span>';
     fab.title = '与“' + A.name + '”对话（智能体）';
     document.body.appendChild(fab);
 
@@ -317,7 +317,7 @@
     panel.className = 'agent';
     panel.innerHTML =
       '<div class="agent-head">' +
-        '<span class="dot" style="width:24px;height:24px;border-radius:50%;background:repeating-radial-gradient(circle at 50% 50%,#e6c887 0 2px,#b8874a 2px 4px)"></span>' +
+        '<img class="agent-avatar agent-avatar--sm" src="assets/img/agent/wenzaoshu.jpg" alt="" aria-hidden="true">' +
         '<div><div class="t">问枣树</div><div class="s">蒙藏学校旧址 · 史料检索型智能体</div></div>' +
         '<button aria-label="收起">–</button>' +
       '</div>' +
@@ -357,7 +357,11 @@
     function bubble(cls, html) {
       const d = document.createElement('div');
       d.className = 'msg ' + cls;
-      d.innerHTML = '<div class="bubble">' + html + '</div>';
+      if (cls === 'tree') {
+        d.innerHTML = '<img class="agent-avatar agent-avatar--xs" src="assets/img/agent/wenzaoshu.jpg" alt="" aria-hidden="true"><div class="bubble">' + html + '</div>';
+      } else {
+        d.innerHTML = '<div class="bubble">' + html + '</div>';
+      }
       body.appendChild(d);
       body.scrollTop = body.scrollHeight;
       return d;
