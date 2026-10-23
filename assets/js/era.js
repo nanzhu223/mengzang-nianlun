@@ -1,6 +1,5 @@
 /* =====================================================================
  * era.js  年代内容页（共 11 个年代，由 ?era=<id> 驱动）
- *  - 场景图（程序化示意插画 + 来源标注）
  *  - 枣树独白（第一人称，200—300 字，可朗读）
  *  - 史料卡片（2—3 条，逐条标注出处）
  *  - 交互元素：人物卡片 / 物件标签 → 弹窗
@@ -37,11 +36,6 @@
         '</div>' +
       '</div>' +
       '<p class="lead" style="margin-top:16px">' + esc(era.event) + '</p>';
-
-    /* ---------------- 场景图 ---------------- */
-    const fig = document.getElementById('eraScene');
-    fig.innerHTML = U.makeScene(era) +
-      '<figcaption><b>' + esc(era.scene.caption) + '</b>' + esc(era.scene.source) + '</figcaption>';
 
     /* ---------------- 旧址影像（真实照片） ---------------- */
     const photoBox = document.getElementById('eraPhoto');
