@@ -772,6 +772,30 @@ body.page-leaving { opacity: 0; }
 .person-card .brief { font-size: 12.5px; line-height: 1.5; color: var(--ink-soft); margin: 8px 0 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .person-card .more { margin-top: 8px; font-size: 12.5px; color: var(--bark); }
 
+/* 有照片的人物：圆形头像换成人物像；弹窗里放一张竖幅小像 */
+.person-avatar.has-photo {
+  width: 64px; height: 64px; padding: 0; overflow: hidden;
+  background: var(--paper-2);
+  box-shadow: 0 0 0 1px rgba(169, 120, 74, .35), 0 6px 16px rgba(60, 40, 24, .18);
+}
+.person-avatar.has-photo img {
+  display: block; width: 100%; height: 100%;
+  object-fit: cover; object-position: 50% 20%;
+}
+.person-portrait {
+  float: right; width: 180px; margin: 4px 0 14px 20px;
+  border: 1px solid var(--line); border-radius: 10px; overflow: hidden;
+  background: var(--paper-2); box-shadow: 0 10px 26px rgba(120, 72, 40, .14);
+}
+.person-portrait img { display: block; width: 100%; height: auto; }
+.person-portrait figcaption {
+  padding: 7px 10px; font-size: 12px; color: var(--ink-soft);
+  border-top: 1px solid var(--line); letter-spacing: .04em;
+}
+@media (max-width: 560px) {
+  .person-portrait { float: none; width: 150px; margin: 0 auto 14px; }
+}
+
 .graph-box { position: relative; margin-top: 20px; padding: 8px; border-radius: var(--radius); background: var(--paper-2); border: 1px solid var(--line); box-shadow: var(--shadow); }
 #graph { width: 100%; height: 520px; }
 .graph-fallback { padding: 20px; font-size: 14px; color: var(--ink-soft); }

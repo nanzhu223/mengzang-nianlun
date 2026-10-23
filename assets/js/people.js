@@ -153,8 +153,12 @@
   function renderCards() {
     const box = document.getElementById('peopleGrid');
     box.innerHTML = S.PEOPLE.map(function (p) {
+      const avatar = p.photo
+        ? '<div class="person-avatar has-photo"><img src="' + p.photo + '" alt="' +
+          esc(p.name) + '像" loading="lazy"></div>'
+        : '<div class="person-avatar">' + esc(p.name.charAt(0)) + '</div>';
       return '<article class="person-card" data-person="' + p.id + '" tabindex="0">' +
-        '<div class="person-avatar">' + esc(p.name.charAt(0)) + '</div>' +
+        avatar +
         '<h3>' + esc(p.name) + '</h3>' +
         '<div class="life">' + esc(p.life) + '　·　' + esc(p.role) + '</div>' +
         '<div class="role">' + esc(p.tag) + '</div>' +
@@ -179,10 +183,17 @@
           const other = S.getPersonById(r.from === id ? r.to : r.from);
           return other ? ('<li>' + esc(other.name) + ' — ' + esc(r.label) + '</li>') : '';
         }).join('');
+      const portrait = p.photo
+        ? '<figure class="person-portrait"><img src="' + p.photo + '" alt="' + esc(p.name) +
+          '像" loading="lazy"><figcaption>' + esc(p.name) + '</figcaption></figure>'
+        : '';
+      const bio = (p.bio && p.bio.length ? p.bio : [p.brief]).map(function (t) {
+        return '<p>' + esc(t) + '</p>';
+      }).join('');
       U.openModal(
         esc(p.name),
         esc(p.life + '　·　' + p.role + '　·　' + p.group),
-        '<p>' + esc(p.brief) + '</p>' +
+        portrait + bio +
         '<h4 style="margin:18px 0 6px;font-family:var(--serif)">与枣树的关系</h4>' +
         '<p>' + esc(p.link) + '</p>' +
         '<h4 style="margin:18px 0 6px;font-family:var(--serif)">相关史料与出处</h4>' +

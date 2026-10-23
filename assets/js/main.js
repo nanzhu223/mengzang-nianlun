@@ -113,7 +113,14 @@
   function showPerson(id) {
     const p = S.getPersonById(id);
     if (!p) return;
-    let html = '<p>' + esc(p.brief) + '</p>';
+    let html = '';
+    if (p.photo) {
+      html += '<figure class="person-portrait"><img src="' + p.photo + '" alt="' + esc(p.name) +
+        '像" loading="lazy"><figcaption>' + esc(p.name) + '</figcaption></figure>';
+    }
+    html += (p.bio && p.bio.length ? p.bio : [p.brief]).map(function (t) {
+      return '<p>' + esc(t) + '</p>';
+    }).join('');
     html += '<dl class="kv">' +
       '<dt>与枣树</dt><dd>' + esc(p.link) + '</dd>' +
       '<dt>史料出处</dt><dd>' + p.sources.map(esc).join('；') + '</dd>' +
