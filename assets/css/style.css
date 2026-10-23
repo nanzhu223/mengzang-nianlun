@@ -937,6 +937,30 @@ body.page-leaving { opacity: 0; }
   .stump-nav-btn span { display: none; }
 }
 
+/* ---------------- 作品短片（关于页顶部，与 /light/ 站同一条片） ----------- */
+.film-figure {
+  margin: 22px 0 0;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--paper-2);
+  box-shadow: 0 18px 50px rgba(120, 72, 40, .10);
+}
+.film-figure video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  background: #faf2de;
+}
+.film-figure figcaption {
+  padding: 12px 18px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--line);
+  letter-spacing: .03em;
+}
+
 @media print {
   .topbar, .agent, .agent-fab, .era-nav, .footer, .opening { display: none !important; }
 }
