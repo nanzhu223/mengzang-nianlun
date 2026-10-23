@@ -263,6 +263,78 @@
     hotspot.addEventListener('click', askTree);
     var hotspotWorld = new THREE.Vector3(-2.6, 2.6, -4.2), projected = new THREE.Vector3();
 
+    /* ---------------- 院落导航牌：贴在建筑 / 门 / 石桌上的三个入口 ----------------
+     * 每块牌子在 DOM 里是一个普通链接，data-pos 写世界坐标；
+     * 每帧投影到屏幕上跟随建筑。转到背面、被开场文字卡压住、
+     * 或和右下角的行走方向键撞上时，自动收起。 */
+    var plaques = [];
+    Array.prototype.forEach.call(section.querySelectorAll('.scene-plaque[data-pos]'), function (el) {
+      var v = el.getAttribute('data-pos').split(',').map(Number);
+      if (v.length === 3 && isFinite(v[0]) && isFinite(v[1]) && isFinite(v[2])) {
+        plaques.push({ el: el, world: new THREE.Vector3(v[0], v[1], v[2]), w: 118, h: 33, on: null });
+      }
+    });
+    function measurePlaques() {
+      for (var i = 0; i < plaques.length; i++) {
+        var el = plaques[i].el;
+        if (el.offsetWidth) plaques[i].w = el.offsetWidth;
+        if (el.offsetHeight) plaques[i].h = el.offsetHeight;
+      }
+    }
+    measurePlaques();
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(measurePlaques).catch(function () { });
+    }
+
+    var avoidSelectors = ['.opening-inner', '.scene-tools', '.scene-walk', '.scene-exit', '.scene-caption'];
+    var avoidRects = [];
+    function refreshAvoid() {
+      avoidRects = [];
+      for (var i = 0; i < avoidSelectors.length; i++) {
+        var el = section.querySelector(avoidSelectors[i]);
+        if (!el || el.offsetParent === null) continue;
+        var r = el.getBoundingClientRect();
+        if (r.width > 4 && r.height > 4) avoidRects.push(r);
+      }
+    }
+    var plaqueProjected = new THREE.Vector3(), plaqueTick = 0;
+    function updatePlaques() {
+      if (!plaques.length) return;
+      if (plaqueTick % 30 === 0) { refreshAvoid(); measurePlaques(); }
+      plaqueTick++;
+      var w = section.clientWidth, h = section.clientHeight;
+      var sr = section.getBoundingClientRect();
+      for (var i = 0; i < plaques.length; i++) {
+        var item = plaques[i];
+        plaqueProjected.copy(item.world).project(camera);
+        var on = plaqueProjected.z > -1 && plaqueProjected.z < 1 &&
+          Math.abs(plaqueProjected.x) < 0.98 && Math.abs(plaqueProjected.y) < 0.96;
+        var x = (plaqueProjected.x * 0.5 + 0.5) * w;
+        var y = (-plaqueProjected.y * 0.5 + 0.5) * h;
+        if (on && avoidRects.length) {
+          var px = sr.left + x, py = sr.top + y;
+          var hw = item.w / 2 + 6, hh = item.h / 2 + 6;
+          for (var k = 0; k < avoidRects.length; k++) {
+            var a = avoidRects[k];
+            if (px + hw > a.left && px - hw < a.right && py + hh > a.top && py - hh < a.bottom) { on = false; break; }
+          }
+        }
+        item.el.style.left = x + 'px';
+        item.el.style.top = y + 'px';
+        if (on !== item.on) {
+          item.on = on;
+          item.el.classList.toggle('is-shown', on);
+        }
+      }
+    }
+    // 点牌子进站时，先记一个标记，让目标页沿用现有的淡入过渡
+    Array.prototype.forEach.call(section.querySelectorAll('.scene-plaque'), function (el) {
+      el.addEventListener('click', function (e) {
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        try { sessionStorage.setItem('nav3d', '1'); } catch (err) { }
+      });
+    });
+
     /* ---------------- M03 集成补丁：氛围模块（无模块时行为完全不变） --------------
      * ?camfix=az,el,dist  固定机位（同机位对比/录屏用）
      * ?atmo=off           创建后立即 dispose，恢复原始光照（before 对照）
@@ -321,6 +393,7 @@
         controls.apply(camera, focus);
       }
       if (atmo && !motionPaused) atmo.update(dt);
+      updatePlaques();
       projected.copy(hotspotWorld).project(camera);
       var showHotspot = projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < 0.9 && Math.abs(projected.y) < 0.85;
       hotspot.hidden = !showHotspot;

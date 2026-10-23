@@ -1,6 +1,17 @@
 /* 暗金玻璃体系下的 3D 庭院开场（2026-10-20 UI 重设计）
  * 场景本身保持暖色古院质感，UI 层用暗色玻璃浮层承载文字与操作。 */
 
+/* 院落导航牌用的汇文明朝体：只截了牌子上用到的字（人、物、长、廊、史、料、库、关、于、我、们），
+ * 几十 KB；本机装了「汇文明朝体」时优先用本机字体。授权：原作者特里王允许免费商用与网页嵌入。 */
+@font-face {
+  font-family: "Huiwen Mincho Plaque";
+  src: local("汇文明朝体"), local("Huiwen-Mincho"), local("HuiwenMincho"),
+       url("../fonts/huiwen-mincho-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 .courtyard-opening {
   height: calc(100svh - var(--site-header, 60px));
   min-height: 540px;
@@ -164,6 +175,92 @@
 @keyframes hotspotPulse {
   0%, 100% { box-shadow: 0 0 6px rgba(232, 181, 77, .6); }
   50% { box-shadow: 0 0 16px rgba(232, 181, 77, 1); }
+}
+
+/* ---------------- 院落导航牌：左厢房 / 垂花门 / 石桌 ---------------- */
+.scene-plaques { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.scene-plaque {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 17px 8px;
+  border: 1px solid rgba(128, 49, 30, .38);
+  border-radius: 7px;
+  background: linear-gradient(160deg, #fffaf0 0%, #f8eed8 54%, #f1e3c6 100%);
+  color: #6f2a1b;
+  font-family: "Huiwen Mincho Plaque", "汇文明朝体", "HuiwenMincho", "Songti SC", "STSong", "SimSun", serif;
+  font-size: 17px;
+  line-height: 1;
+  letter-spacing: .2em;
+  text-indent: .2em;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .92),
+    inset 0 0 0 3px rgba(255, 250, 240, .55),
+    0 8px 20px rgba(74, 46, 24, .26);
+  transition:
+    opacity .26s ease,
+    transform .26s var(--ease-out),
+    box-shadow .26s ease,
+    border-color .26s ease,
+    color .26s ease;
+}
+/* 牌子两侧的小铆钉 */
+.scene-plaque::before,
+.scene-plaque::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 3.5px; height: 3.5px;
+  margin-top: -1.75px;
+  border-radius: 50%;
+  background: rgba(128, 49, 30, .45);
+  box-shadow: 0 0 0 1px rgba(255, 250, 240, .8);
+  transition: background .26s ease, box-shadow .26s ease;
+}
+.scene-plaque::before { left: 6px; }
+.scene-plaque::after { right: 6px; }
+.scene-plaque.is-shown { opacity: 1; visibility: visible; pointer-events: auto; }
+.scene-plaque.is-shown:hover,
+.scene-plaque.is-shown:focus-visible {
+  color: #57200f;
+  border-color: rgba(210, 163, 70, .9);
+  transform: translate(-50%, -50%) scale(1.06);
+  outline: none;
+  text-shadow: 0 0 9px rgba(255, 226, 148, .85);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, .95),
+    inset 0 0 0 3px rgba(255, 250, 240, .6),
+    0 0 0 1px rgba(240, 205, 126, .55),
+    0 0 16px rgba(244, 203, 106, .55),
+    0 0 34px rgba(240, 194, 92, .26),
+    0 10px 24px rgba(74, 46, 24, .24);
+}
+.scene-plaque.is-shown:hover::before,
+.scene-plaque.is-shown:hover::after,
+.scene-plaque.is-shown:focus-visible::before,
+.scene-plaque.is-shown:focus-visible::after {
+  background: #a9782c;
+  box-shadow: 0 0 8px rgba(244, 203, 106, .9);
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene-plaque { transition: opacity .2s ease, box-shadow .2s ease, color .2s ease; }
+  .scene-plaque.is-shown:hover, .scene-plaque.is-shown:focus-visible { transform: translate(-50%, -50%); }
+}
+@media (max-width: 700px) {
+  .scene-plaque {
+    font-size: 14px;
+    padding: 6px 12px 7px;
+    letter-spacing: .16em;
+    text-indent: .16em;
+  }
 }
 
 /* ---------------- 辅助说明 ---------------- */

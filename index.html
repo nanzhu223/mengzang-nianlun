@@ -6,7 +6,7 @@
 <title>触摸年轮 · 蒙藏学校旧址中华民族共同体数字记忆</title>
 <meta name="description" content="以蒙藏学校旧址西院近400年古枣树的年轮为时间轴，讲述马克思主义在少数民族中传播、第一个少数民族党支部诞生的历史记忆。">
 <link rel="stylesheet" href="assets/css/style.css?v=20">
-<link rel="stylesheet" href="assets/css/courtyard.css?v=2">
+<link rel="stylesheet" href="assets/css/courtyard.css?v=3">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 </head>
 <body>
@@ -49,6 +49,13 @@
   </div>
 
   <button class="tree-hotspot" id="treeHotspot" type="button" hidden><span class="hotspot-mark"></span>古枣树 · 点击提问</button>
+
+  <!-- 院落里的三块导航牌：分别贴在左厢房、垂花门、院中石桌上，由 tree3d.js 按机位投影定位 -->
+  <nav class="scene-plaques" aria-label="院落导航">
+    <a class="scene-plaque" href="people.html" data-pos="-9.4,4.35,-2.4">人物长廊</a>
+    <a class="scene-plaque" href="archive.html" data-pos="3.4,2.78,-9.5">史料库</a>
+    <a class="scene-plaque" href="about.html" data-pos="0.4,1.4,0.4">关于我们</a>
+  </nav>
 
   <div class="scene-tools" aria-label="庭院操作">
     <div class="scene-views" role="group" aria-label="观察位置">
@@ -186,7 +193,7 @@
 <script src="assets/js/courtyard-detail.js?v=1"></script>
 <script src="assets/js/courtyard-atmosphere.js?v=1"></script>
 <script src="assets/js/courtyard-walk.js?v=1"></script>
-<script src="assets/js/tree3d.js?v=11"></script>
+<script src="assets/js/tree3d.js?v=12"></script>
 <script src="assets/js/main.js"></script>
 <script src="assets/js/agent-config.js"></script>
 <script src="assets/js/agent.js?v=2"></script>
