@@ -850,6 +850,18 @@ body.page-leaving { opacity: 0; }
 }
 .callout { padding: 16px 20px; border-radius: 12px; background: rgba(140, 31, 40, .06); border: 1px solid rgba(140, 31, 40, .22); font-size: 14.5px; }
 
+/* 智能体形象：关于页 3.3 一节，白底插画与纸色背景做正片叠底 */
+.agent-portrait { display: grid; grid-template-columns: minmax(210px, 300px) minmax(0, 1fr); gap: 30px; align-items: center; margin: 20px 0 28px; }
+.agent-portrait figure { margin: 0; text-align: center; }
+.agent-portrait img { display: block; width: 100%; height: auto; mix-blend-mode: multiply; }
+.agent-portrait figcaption { margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); letter-spacing: .04em; }
+.agent-portrait p { margin: 0 0 12px; }
+.agent-portrait p:last-child { margin-bottom: 0; }
+@media (max-width: 700px) {
+  .agent-portrait { grid-template-columns: 1fr; gap: 14px; }
+  .agent-portrait figure { max-width: 240px; margin: 0 auto; }
+}
+
 /* ------------------------------ 弹窗 / 智能体 ------------------------------ */
 .modal-mask {
   position: fixed; inset: 0; background: rgba(43, 33, 24, .55);
